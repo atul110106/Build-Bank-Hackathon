@@ -1,0 +1,24 @@
+{
+  "name": "build-bank-hackathon",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SecureBank - a full-stack banking demo application",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "start": "concurrently -n server,client -c green,cyan \"npm:start:server\" \"npm:start:client\"",
+    "start:server": "npm run start --workspace server",
+    "start:client": "npm run preview --workspace client",
+    "test": "npm run test --workspace server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
