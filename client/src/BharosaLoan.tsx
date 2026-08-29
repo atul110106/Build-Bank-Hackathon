@@ -732,6 +732,11 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         ? "आवेदन रद्द हो गया। कोई राशि देय नहीं।"
         : "The application was cancelled. Nothing is due.";
     }
+    if (undoLeft <= 0) {
+      return g === "hi"
+        ? "आवेदन मिल गया। रद्द करने की छोटी खिड़की खत्म हो गई। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
+        : "Application received. The short undo window has ended. No money is sent in this prototype.";
+    }
     return g === "hi"
       ? `आवेदन मिल गया। ${undoLeft} सेकंड में रद्द कर सकते हैं। इस प्रोटोटाइप में पैसे नहीं भेजे गए।`
       : `Application received. You can undo for ${undoLeft} seconds. No money is sent in this prototype.`;
@@ -1432,7 +1437,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               </h1>
               {!undone && (
                 <p className="mt-2 text-base leading-relaxed text-stone-600">
-                  {t(L, "confirmSub", { n: undoLeft })}
+                  {undoLeft > 0 ? t(L, "confirmSub", { n: undoLeft }) : t(L, "coolingClosed")}
                 </p>
               )}
               {undone && (
