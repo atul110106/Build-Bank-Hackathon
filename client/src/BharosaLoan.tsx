@@ -296,16 +296,26 @@ const COPY = {
     voiceOn: "Voice on",
     voiceOff: "Voice off",
     next: "Continue",
+    nextBasics: "Looks good — continue",
+    nextTrust: "Continue with this score",
+    nextStructure: "Continue to partners",
+    nextLender: "Continue with this partner",
+    nextInsurance: "Continue to review",
+    nextReview: "Confirm application",
     back: "Back",
-    skipIns: "Continue without protection",
-    chooseLang: "Choose your language",
-    chooseLangSub: "You can switch anytime. Voice guidance will follow this language.",
+    skipIns: "Skip protection for now",
+    chooseLang: "Hi — which language feels easy?",
+    chooseLangSub: "Tap one. I’ll speak and show everything in that language. You can switch anytime.",
+    langTapHint: "Tap a language to start — no extra click needed",
     english: "English",
     hindi: "हिन्दी",
     stepOf: "Step {n} of {total}",
+    stepEncourage: "You’re doing fine — take your time",
+    tipLabel: "Quick tip",
+    guideName: "Your guide",
     basicsTitle: "Tell us what you need",
     basicsSub:
-      "There is no credit score trap here. We only need the amount, why you need it, and how money usually arrives for you.",
+      "No credit-score trap. Just the amount, why you need it, and how money usually comes in for you.",
     amount: "Loan amount",
     amountHint: "You can pick a preset or use the slider. Range ₹10,000 – ₹2,00,000.",
     purpose: "Purpose of this loan",
@@ -381,10 +391,10 @@ const COPY = {
     emiSub:
       "All {total} calendar months are shown. Mark up to {buffer} as buffer. On payment months set any amount you need — the leftover is redistributed so you still pay the full total.",
     deadlineNote: "Choose buffer or change an EMI at least 2–3 days before that month’s due date.",
-    actionFull: "Use equal share",
-    actionLess: "Set custom amount",
-    actionBuffer: "Mark as buffer",
-    actionUnbuffer: "Remove buffer mark",
+    actionFull: "Split evenly again",
+    actionLess: "Set my own amount",
+    actionBuffer: "Mark as buffer (₹0)",
+    actionUnbuffer: "Make this a payment month",
     bufferQuota: "Buffer months marked: {used} / {max}",
     bufferQuotaFull: "You already marked {max} buffer months. Unmark one to choose another.",
     skipMonthInfo: "This month is marked as buffer — ₹0 due, and no interest is charged.",
@@ -479,12 +489,15 @@ const COPY = {
     trustStructure: "Buffer and flexible instalments shown",
     trustPartner: "Verified partner selected",
     trustPrice: "Full price shown before confirm",
-    chatTitle: "Ask about this loan",
-    chatPh: "Type a question…",
+    chatTitle: "Ask me anything",
+    chatPh: "Ask in your words…",
     chatHello:
-      "Hello. Ask about the buffer, instalments, missed payments, or protection. I use short prepared answers in this prototype.",
-    chatTyping: "Thinking…",
-    subtitleLabel: "Voice guide (also on screen)",
+      "Hi — I’m here to help. Ask about buffer months, flexible EMI, missed payments, or protection. Short, plain answers only.",
+    chatTyping: "One moment…",
+    chatSuggestBuffer: "How do buffer months work?",
+    chatSuggestEmi: "Can I pay less one month?",
+    chatSuggestProtect: "What does protection cover?",
+    subtitleLabel: "Your guide is saying",
     prototype: "Prototype · fictional partners only · not a real loan offer",
     month: "Month {n}",
     skipMonth: "Buffer",
@@ -506,16 +519,26 @@ const COPY = {
     voiceOn: "आवाज़ चालू",
     voiceOff: "आवाज़ बंद",
     next: "आगे बढ़ें",
+    nextBasics: "ठीक है — आगे बढ़ें",
+    nextTrust: "इस स्कोर के साथ आगे",
+    nextStructure: "साझेदार चुनने जाएँ",
+    nextLender: "इस साझेदार के साथ आगे",
+    nextInsurance: "समीक्षा पर जाएँ",
+    nextReview: "आवेदन की पुष्टि करें",
     back: "पीछे",
-    skipIns: "बिना सुरक्षा के आगे बढ़ें",
-    chooseLang: "अपनी भाषा चुनें",
-    chooseLangSub: "आप कभी भी बदल सकते हैं। आवाज़ी गाइड इसी भाषा में चलेगी।",
+    skipIns: "अभी सुरक्षा छोड़ें",
+    chooseLang: "नमस्ते — कौन-सी भाषा आसान लगे?",
+    chooseLangSub: "एक पर टैप करें। मैं उसी भाषा में बोलूँगी और लिखूँगी। कभी भी बदल सकते हैं।",
+    langTapHint: "भाषा पर टैप करें — अलग से आगे बढ़ने की ज़रूरत नहीं",
     english: "English",
     hindi: "हिन्दी",
     stepOf: "चरण {n} / {total}",
+    stepEncourage: "सब ठीक चल रहा है — आराम से चुनें",
+    tipLabel: "छोटी सलाह",
+    guideName: "आपकी गाइड",
     basicsTitle: "आपको कितनी राशि चाहिए",
     basicsSub:
-      "यहाँ क्रेडिट स्कोर का जाल नहीं है। केवल राशि, वजह, और पैसे आमतौर पर कैसे आते हैं — बस इतना बताएँ।",
+      "यहाँ क्रेडिट स्कोर का जाल नहीं। बस राशि, वजह, और पैसे आमतौर पर कैसे आते हैं — इतना बताएँ।",
     amount: "ऋण राशि",
     amountHint: "तैयार विकल्प चुनें या स्लाइडर चलाएँ। सीमा ₹10,000 – ₹2,00,000।",
     purpose: "यह ऋण किस काम के लिए है",
@@ -591,10 +614,10 @@ const COPY = {
     emiSub:
       "सभी {total} कैलेंडर महीने दिखते हैं। अधिकतम {buffer} को राहत चिह्नित करें। भुगतान महीनों पर अपनी राशि तय करें — बाकी राशि बाँटी जाती है ताकि पूरा योग चुकता रहे।",
     deadlineNote: "राहत या किस्त का बदलाव उस महीने की देय तिथि से कम-से-कम 2–3 दिन पहले चुनें।",
-    actionFull: "बराबर हिस्सा लगाएँ",
-    actionLess: "अपनी राशि तय करें",
-    actionBuffer: "राहत चिह्नित करें",
-    actionUnbuffer: "राहत हटाएँ",
+    actionFull: "फिर से बराबर बाँटें",
+    actionLess: "अपनी राशि लिखें",
+    actionBuffer: "राहत चिह्नित करें (₹0)",
+    actionUnbuffer: "इसे भुगतान महीना बनाएँ",
     bufferQuota: "राहत महीने चिह्नित: {used} / {max}",
     bufferQuotaFull: "आप पहले ही {max} राहत महीने चिह्नित कर चुके हैं। दूसरा चुनने के लिए एक हटाएँ।",
     skipMonthInfo: "यह महीना राहत चिह्नित है — ₹0 देय, और ब्याज नहीं लगता।",
@@ -688,12 +711,15 @@ const COPY = {
     trustStructure: "राहत और लचीली किस्त दिखाई",
     trustPartner: "सत्यापित साझेदार चुना",
     trustPrice: "पुष्टि से पहले पूरी कीमत",
-    chatTitle: "इस ऋण के बारे में पूछें",
-    chatPh: "प्रश्न लिखें…",
+    chatTitle: "मुझसे कुछ भी पूछें",
+    chatPh: "अपने शब्दों में पूछें…",
     chatHello:
-      "नमस्ते। राहत अवधि, किस्त, छूटी किस्त, या सुरक्षा के बारे में पूछें। इस प्रोटोटाइप में तैयार उत्तर हैं।",
-    chatTyping: "सोच रहे हैं…",
-    subtitleLabel: "आवाज़ी गाइड (यहाँ लिखा भी है)",
+      "नमस्ते — मैं मदद के लिए हूँ। राहत महीने, लचीली किस्त, छूटी किस्त, या सुरक्षा पूछें। छोटे, साफ़ जवाब मिलेंगे।",
+    chatTyping: "एक पल…",
+    chatSuggestBuffer: "राहत महीने कैसे काम करते हैं?",
+    chatSuggestEmi: "क्या एक महीने कम दे सकते हैं?",
+    chatSuggestProtect: "सुरक्षा क्या कवर करती है?",
+    subtitleLabel: "आपकी गाइड कह रही है",
     prototype: "प्रोटोटाइप · काल्पनिक साझेदार · वास्तविक ऋण प्रस्ताव नहीं",
     month: "महीना {n}",
     skipMonth: "राहत",
@@ -1076,8 +1102,8 @@ function matchFaq(q: string, lang: Lang): string {
   }
   if (best) return best.row[lang];
   return lang === "hi"
-    ? "मैं राहत अवधि, किस्त, ट्रस्ट स्कोर, छूटी किस्त, सुरक्षा, शुल्क, या आरबीआई बैज के बारे में बता सकता/सकती हूँ। थोड़े अलग शब्द आज़माएँ।"
-    : "I can explain the buffer, instalments, Trust Score, missed payments, protection, fees, or RBI badges. Try a few different words.";
+    ? "कोई बात नहीं — थोड़े अलग शब्द आज़माएँ। राहत महीने, किस्त, ट्रस्ट स्कोर, सुरक्षा, या आरबीआई बैज पूछ सकते हैं।"
+    : "No worries — try a few different words. You can ask about buffer months, EMI, Trust Score, protection, or RBI badges.";
 }
 
 function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
@@ -1085,14 +1111,33 @@ function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
   const all = window.speechSynthesis.getVoices();
   if (!all.length) return null;
   const want = lang === "hi" ? "hi" : "en";
+  const femaleHint = /female|woman|zira|samantha|google.*हिन्दी|google.*hindi|lekha|neerja|heera/i;
+  const langMatch = all.filter(
+    (v) =>
+      v.lang.toLowerCase() === `${want}-in` ||
+      v.lang.toLowerCase().startsWith(`${want}-`) ||
+      v.lang.toLowerCase().startsWith(want) ||
+      v.name.toLowerCase().includes(want === "hi" ? "hindi" : "english"),
+  );
   return (
-    all.find((v) => v.lang.toLowerCase() === `${want}-in`) ||
-    all.find((v) => v.lang.toLowerCase().startsWith(`${want}-`)) ||
-    all.find((v) => v.lang.toLowerCase().startsWith(want)) ||
-    all.find((v) => v.name.toLowerCase().includes(want === "hi" ? "hindi" : "english")) ||
+    langMatch.find((v) => femaleHint.test(v.name)) ||
+    langMatch[0] ||
+    all.find((v) => femaleHint.test(v.name)) ||
     all[0] ||
     null
   );
+}
+
+/** Soften TTS rhythm — short pauses after sentences and friendly connectors. */
+function humanizeSpeech(text: string, lang: Lang): string {
+  let s = text.trim();
+  // Give the engine breathing room between ideas.
+  s = s.replace(/\s*—\s*/g, lang === "hi" ? "… " : ", ");
+  s = s.replace(/\.\s+/g, ". … ");
+  s = s.replace(/\?\s+/g, "? … ");
+  s = s.replace(/!\s+/g, "! … ");
+  s = s.replace(/\s{2,}/g, " ");
+  return s;
 }
 
 function speak(
@@ -1109,11 +1154,12 @@ function speak(
     // Chrome sometimes stays paused after cancel — nudge it.
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
     // Never let TTS read ₹25,000 digit-by-digit — convert to natural words.
-    const spoken = rupeeAmountsToSpeech(text, lang);
+    const spoken = humanizeSpeech(rupeeAmountsToSpeech(text, lang), lang);
     const u = new SpeechSynthesisUtterance(spoken);
     u.lang = lang === "hi" ? "hi-IN" : "en-IN";
-    u.rate = 0.92;
-    u.pitch = 1;
+    // Slightly slower + warmer than default — feels more like a person guiding you.
+    u.rate = lang === "hi" ? 0.9 : 0.88;
+    u.pitch = 1.06;
     u.volume = 1;
     const v = pickVoice(lang);
     if (v) u.voice = v;
@@ -1141,8 +1187,9 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const [step, setStep] = useState<Step>("language");
   const [muted, setMuted] = useState(false);
   const [subtitle, setSubtitle] = useState(
-    "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.",
+    "Hi there. I’m your Bharosa guide. Tap English or Hindi — I’ll walk with you in plain words.",
   );
+  const [stepAnimKey, setStepAnimKey] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [amount, setAmount] = useState(50_000);
@@ -1283,62 +1330,67 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     const g = lang ?? "en";
     if (step === "language") {
       return g === "hi"
-        ? "भरोसालोन में आपका स्वागत है। कृपया अंग्रेज़ी या हिन्दी चुनें। आवाज़ी गाइड हर बात को स्क्रीन पर भी लिखेगी।"
-        : "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.";
+        ? "नमस्ते। मैं आपकी भरोसा गाइड हूँ। अंग्रेज़ी या हिन्दी पर टैप करें — मैं उसी भाषा में आसान शब्दों में साथ चलूँगी।"
+        : "Hi there. I’m your Bharosa guide. Tap English or Hindi — I’ll walk with you in plain words, and you’ll see everything on screen too.";
     }
     if (step === "basics") {
       return g === "hi"
-        ? `ऋण राशि चुनें, उद्देश्य बताएँ, और कमाई कैसे आती है। अभी राशि ${inr(amount)} है।`
-        : `Choose a loan amount, a purpose, and how income usually arrives. Amount is currently ${inr(amount)}.`;
+        ? `चलिए शुरू करें। कितनी राशि चाहिए, किस काम के लिए, और कमाई कैसे आती है — बस इतना चुनें। अभी राशि ${inr(amount)} है। जब तैयार हों, आगे बढ़ें।`
+        : `Let’s begin. Pick how much you need, what it’s for, and how money usually arrives. Right now that’s ${inr(amount)}. When it feels right, tap continue.`;
     }
     if (step === "trust") {
       const active = TRUST_SIGNALS.filter((s) => trustSignals[s.id]).length;
+      if (active === 0) {
+        return g === "hi"
+          ? "यह आपकी विश्वास प्रोफ़ाइल है। बैंक स्टेटमेंट ज़रूरी नहीं। जो सच में लागू हो, उसे चालू करें — स्कोर धीरे-धीरे बनेगा, और दर बेहतर हो सकती है।"
+          : "This is your Trust Profile. No bank statement required. Toggle what truly fits you — your score will grow gently, and it can help your rate.";
+      }
       return g === "hi"
-        ? `आपकी विश्वास प्रोफ़ाइल। ट्रस्ट स्कोर ${trustScore} में से 100 है। ${active} संकेत चालू हैं। बैंक स्टेटमेंट ज़रूरी नहीं। मज़बूत स्कोर आपकी ब्याज दर सुधार सकता है।`
-        : `Your Trust Profile. Trust Score is ${trustScore} out of 100. ${active} signals are on. A bank statement is not required. A stronger score can improve your interest rate.`;
+        ? `अच्छा। आपका ट्रस्ट स्कोर अभी ${trustScore} में से 100 है। ${active} संकेत चालू हैं। और जोड़ना हो तो जोड़ें, नहीं तो आगे बढ़ सकते हैं।`
+        : `Nice. Your Trust Score is ${trustScore} out of 100, with ${active} signals on. Add more if you like — or continue when you’re ready.`;
     }
     if (step === "structure") {
       return g === "hi"
-        ? `कैलेंडर ${calendarLen} महीनों का है — ${repayMonths} वापसी अवधि और अधिकतम ${bufferMonths} राहत। आप स्वयं चुनें कौन से महीने राहत हैं। बाकी महीनों पर कोई भी किस्त तय करें; बाकी राशि अन्य महीनों में बँटती है। सामान्य किस्त लगभग ${inr(emi)} है। ब्याज ${inr(interestTotal)}। राहत पर ब्याज शून्य।`
-        : `Your calendar has ${calendarLen} months — ${repayMonths} repayment tenure plus up to ${bufferMonths} buffer months you choose. Mark any months as buffer, and set any EMI on the rest; leftovers redistribute so the full total is paid. Equal-share EMI is about ${inr(emi)}. Interest ${inr(interestTotal)}. Buffer interest is zero.`;
+        ? `यहाँ वापसी आसान रखी गई है। ${calendarLen} महीनों का कैलेंडर है। अधिकतम ${bufferMonths} महीने राहत चिह्नित कर सकते हैं। बाकी पर अपनी किस्त लिखें — कम दें तो बाकी अन्य महीनों में बँट जाएगी। सामान्य हिस्सा लगभग ${inr(emi)} है।`
+        : `Here’s the gentle part. You have a ${calendarLen}-month calendar. Mark up to ${bufferMonths} months as buffer when money is tight. On other months, set any amount you can — leftovers move so the full total is still paid. A typical share is about ${inr(emi)}.`;
     }
     if (step === "lender") {
       return g === "hi"
-        ? `बैंक या एनबीएफसी साझेदार चुनें। आपके ट्रस्ट स्कोर ${trustScore} से दर में ${rateDiscount} प्रतिशत तक सुधार हो सकता है।${skipExtraVerify ? " अतिरिक्त जाँच चरण छोड़ा जा सकता है।" : ""} हर कार्ड पर आरबीआई बैज लिखा है।`
-        : `Choose a Bank or NBFC partner. Your Trust Score ${trustScore} can improve rates by up to ${rateDiscount} percent.${skipExtraVerify ? " An extra verification step may be skipped." : ""} Each card shows an RBI badge.`;
+        ? `अब एक भरोसेमंद साझेदार चुनें — बैंक या एनबीएफसी। हर कार्ड पर आरबीआई बैज है।${rateDiscount > 0 ? ` आपके स्कोर से दर लगभग ${rateDiscount} प्रतिशत तक हल्की हो सकती है।` : ""}${skipExtraVerify ? " अतिरिक्त जाँच भी छूट सकती है।" : ""}`
+        : `Now pick a partner you trust — a Bank or NBFC. Every card carries an RBI badge.${rateDiscount > 0 ? ` Your score may soften the rate by about ${rateDiscount} percent.` : ""}${skipExtraVerify ? " An extra check may also be skipped." : ""}`;
     }
     if (step === "insurance") {
       return g === "hi"
         ? wantInsurance
-          ? `सुरक्षा चालू है। कवर स्लैब ${activeCover} प्रतिशत है। एक बार का प्रीमियम ${inr(prot)} है — हर 5 प्रतिशत स्लैब पर बदलता है। यह वैकल्पिक है।`
-          : "सुरक्षा वैकल्पिक है और अभी बंद है। आप 25 से 50 प्रतिशत तक हर 5 प्रतिशत स्लैब चुन सकते हैं। प्रीमियम हर स्लैब पर बदलता है।"
+          ? `सुरक्षा चालू है — पूरी तरह वैकल्पिक। कवर ${activeCover} प्रतिशत है, और एक बार का प्रीमियम ${inr(prot)} है। हर पाँच प्रतिशत पर प्रीमियम बदलता है।`
+          : "सुरक्षा वैकल्पिक है। चाहें तो जोड़ें, नहीं तो छोड़कर आगे बढ़ें। कोई दबाव नहीं।"
         : wantInsurance
-          ? `Protection is on. Cover slab is ${activeCover} percent. The one-time premium is ${inr(prot)} and changes every 5 percent cover step. This remains optional.`
-          : "Protection is optional and currently off. Choose cover in 5 percent slabs from 25 to 50. The premium changes at every slab.";
+          ? `Protection is on — still optional. Cover is ${activeCover} percent, and the one-time premium is ${inr(prot)}. It changes every five percent step.`
+          : "Protection is optional. Add it if you want a safety net — or skip and continue. No pressure either way.";
     }
     if (step === "review") {
       return g === "hi"
-        ? `आपको ${inr(amount)} मिलते हैं। ${repayMonths} महीने का ब्याज ${inr(interestTotal)}। राहत पर ब्याज शून्य। प्रोसेसिंग ${inr(proc)}। सुरक्षा शुल्क ${wantInsurance ? inr(prot) : "शून्य"}। कुल चुकाने योग्य ${inr(grand)}। पुष्टि से पहले बॉक्स चुनें।`
-        : `You receive ${inr(amount)}. Interest for ${repayMonths} months is ${inr(interestTotal)}. Buffer interest is zero. Processing fee ${inr(proc)}. Protection fee ${wantInsurance ? inr(prot) : "zero"}. Total to repay ${inr(grand)}. Tick the box before you confirm.`;
+        ? `एक नज़र डाल लें। आपको ${inr(amount)} मिलते हैं। कुल चुकाने योग्य ${inr(grand)} है। राहत पर ब्याज शून्य। जब पढ़ लें, नीचे बॉक्स चुनकर पुष्टि करें।`
+        : `One last look together. You receive ${inr(amount)}. Total to repay is ${inr(grand)}. Buffer months stay interest-free. When you’ve read it, tick the box and confirm.`;
     }
     if (undone) {
       return g === "hi"
-        ? "आवेदन रद्द हो गया। कोई राशि देय नहीं।"
-        : "The application was cancelled. Nothing is due.";
+        ? "हो गया — आवेदन रद्द। कोई राशि देय नहीं। जब चाहें फिर से शुरू कर सकते हैं।"
+        : "All set — application cancelled. Nothing is due. You can start again whenever you like.";
     }
     if (waitSkipped) {
       return g === "hi"
-        ? "प्रतीक्षा छोड़ दी। आवेदन रखा गया। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
-        : "Wait skipped. Application kept. No money is sent in this prototype.";
+        ? "ठीक है, प्रतीक्षा छोड़ दी। आवेदन रखा गया। इस डेमो में असली पैसे नहीं भेजे जाते।"
+        : "Okay — wait skipped. Your application is kept. In this demo, no real money is sent.";
     }
     if (undoLeft <= 0) {
       return g === "hi"
-        ? "आवेदन मिल गया। रद्द करने की 30 सेकंड की खिड़की खत्म हो गई। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
-        : "Application received. The 30-second cancel window has ended. No money is sent in this prototype.";
+        ? "आवेदन मिल गया। छोटी रद्द खिड़की बंद हो गई। इस डेमो में पैसे नहीं भेजे गए।"
+        : "Application received. The short cancel window has closed. No money is sent in this demo.";
     }
     return g === "hi"
-      ? `आवेदन मिल गया। आप ${undoLeft} सेकंड में रद्द कर सकते हैं, या प्रतीक्षा छोड़ सकते हैं।`
-      : `Application received. You can cancel for ${undoLeft} seconds, or skip the wait.`;
+      ? `आवेदन मिल गया। अगले ${undoLeft} सेकंड में रद्द कर सकते हैं, या प्रतीक्षा छोड़ सकते हैं। आराम से सोचें।`
+      : `Application received. You can cancel in the next ${undoLeft} seconds, or skip the wait. Take a breath — no rush.`;
   }, [
     lang,
     step,
@@ -1452,6 +1504,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   function go(next: Step) {
     setAck(false);
     setStep(next);
+    setStepAnimKey((k) => k + 1);
   }
 
   function nextStep() {
@@ -1462,15 +1515,26 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     if (i < STEPS.length - 1) go(STEPS[i + 1]);
   }
 
-  function chooseLanguage(next: Lang) {
+  function nextLabel(): string {
+    if (step === "insurance" && !wantInsurance) return t(L, "skipIns");
+    if (step === "basics") return t(L, "nextBasics");
+    if (step === "trust") return t(L, "nextTrust");
+    if (step === "structure") return t(L, "nextStructure");
+    if (step === "lender") return t(L, "nextLender");
+    if (step === "insurance") return t(L, "nextInsurance");
+    if (step === "review") return t(L, "nextReview");
+    return t(L, "next");
+  }
+
+  function chooseLanguage(next: Lang, autoAdvance = false) {
     audioUnlocked.current = true;
     setLang(next);
+    const text =
+      next === "hi"
+        ? "बहुत अच्छा। हिन्दी चुनी। चलिए आसान शब्दों में आगे बढ़ते हैं।"
+        : "Lovely. English it is. Let’s move ahead gently, in plain words.";
     // Speak immediately on the user gesture so browsers allow TTS.
     window.setTimeout(() => {
-      const text =
-        next === "hi"
-          ? "भरोसालोन में आपका स्वागत है। कृपया अंग्रेज़ी या हिन्दी चुनें। आवाज़ी गाइड हर बात को स्क्रीन पर भी लिखेगी।"
-          : "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.";
       setSubtitle(text);
       if (!muted) {
         speak(text, next, {
@@ -1486,6 +1550,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         });
       }
     }, 40);
+    // One tap starts the journey — no extra Continue click on language.
+    if (autoAdvance && step === "language") {
+      window.setTimeout(() => {
+        setStepAnimKey((k) => k + 1);
+        setStep("basics");
+      }, 650);
+    }
   }
 
   function prevStep() {
@@ -1497,9 +1568,10 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     go(STEPS[i - 1]);
   }
 
-  function sendChat() {
-    const q = chatInput.trim();
+  function sendChat(preset?: string) {
+    const q = (preset ?? chatInput).trim();
     if (!q || chatBusy) return;
+    setChatOpen(true);
     const id = msgId.current++;
     setMsgs((m) => [...m, { id, role: "user", text: q }]);
     setChatInput("");
@@ -1508,7 +1580,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
       const ans = matchFaq(q, L);
       setMsgs((m) => [...m, { id: msgId.current++, role: "bot", text: ans }]);
       setChatBusy(false);
-    }, 700);
+    }, 450);
   }
 
   function resetFlow() {
@@ -1620,7 +1692,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                     className={`inline-flex min-h-11 min-w-11 items-center gap-1 rounded-full px-3 text-sm font-semibold ${
                       L === x ? "bg-orange-700 text-white" : "text-stone-700"
                     }`}
-                    onClick={() => chooseLanguage(x)}
+                    onClick={() => chooseLanguage(x, false)}
                     aria-pressed={L === x}
                   >
                     <Languages className="h-4 w-4" aria-hidden />
@@ -1708,12 +1780,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         <main id="bharosa-main" className="min-w-0">
           {step !== "language" && step !== "confirm" && (
             <div className="mb-5">
-              <div className="mb-2 flex justify-between text-sm text-stone-600">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm text-stone-600">
                 <span>{t(L, "stepOf", { n: stepIndex, total: STEPS.length - 1 })}</span>
+                <span className="text-orange-800">{t(L, "stepEncourage")}</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-amber-200">
+              <div className="h-2.5 overflow-hidden rounded-full bg-amber-200">
                 <div
-                  className="h-full rounded-full bg-orange-700 transition-all"
+                  className="h-full rounded-full bg-orange-700 transition-all duration-500 ease-out"
                   style={{ width: `${(stepIndex / (STEPS.length - 1)) * 100}%` }}
                 />
               </div>
@@ -1721,25 +1794,33 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
           )}
 
           {step === "language" && (
-            <Card>
+            <Card key={stepAnimKey}>
+              <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-900 ring-1 ring-orange-200">
+                <HeartHandshake className="h-4 w-4" aria-hidden />
+                {COPY.en.guideName} · {COPY.hi.guideName}
+              </p>
               <h1 className="text-2xl font-bold sm:text-3xl">{COPY.en.chooseLang}</h1>
               <p className="mt-1 text-lg text-stone-600">{COPY.hi.chooseLang}</p>
-              <p className="mt-3 text-base text-stone-600">
-                {COPY.en.chooseLangSub} · {COPY.hi.chooseLangSub}
+              <p className="mt-3 text-base leading-relaxed text-stone-600">
+                {COPY.en.chooseLangSub}
+              </p>
+              <p className="mt-1 text-base leading-relaxed text-stone-600">{COPY.hi.chooseLangSub}</p>
+              <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950 ring-1 ring-amber-200">
+                {COPY.en.langTapHint} · {COPY.hi.langTapHint}
               </p>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
                 <LangCard
                   active={lang === "en"}
                   title="English"
-                  sub="Voice: en-IN"
-                  onClick={() => chooseLanguage("en")}
+                  sub="I’ll speak with you in English"
+                  onClick={() => chooseLanguage("en", true)}
                   testId="lang-en"
                 />
                 <LangCard
                   active={lang === "hi"}
                   title="हिन्दी"
-                  sub="आवाज़: hi-IN"
-                  onClick={() => chooseLanguage("hi")}
+                  sub="मैं आपके साथ हिन्दी में बोलूँगी"
+                  onClick={() => chooseLanguage("hi", true)}
                   testId="lang-hi"
                 />
               </div>
@@ -1748,6 +1829,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "basics" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "basicsTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "basicsSub")}</p>
 
@@ -1827,6 +1909,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "trust" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "trustProfileTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "trustSub")}</p>
               <p className="mt-2 text-base leading-relaxed text-stone-700">{t(L, "trustSupport")}</p>
@@ -1973,8 +2056,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "structure" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "structureTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "structureSub")}</p>
+              <p className="mt-3 rounded-2xl bg-orange-50 px-4 py-3 text-sm font-medium leading-relaxed text-orange-950 ring-1 ring-orange-200">
+                <span className="font-bold">{t(L, "tipLabel")}: </span>
+                {t(L, "flexHint")}
+              </p>
 
               <div className="mt-6">
                 <p className="font-semibold">{t(L, "tenureLen")}</p>
@@ -2242,6 +2330,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "lender" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "lenderTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "lenderSub")}</p>
               {(rateDiscount > 0 || skipExtraVerify) && (
@@ -2360,6 +2449,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "insurance" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "insTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "insSub")}</p>
               <p className="mt-3 text-base text-stone-700">{t(L, "insTone")}</p>
@@ -2612,26 +2702,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
             </Card>
           )}
 
-          {step !== "confirm" && (
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-              <button
-                type="button"
-                onClick={prevStep}
-                data-testid="bharosa-back"
-                className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-white px-5 font-semibold text-stone-800 ring-1 ring-stone-300"
-              >
-                <ChevronLeft className="h-5 w-5" /> {t(L, "back")}
-              </button>
-              <button
-                type="button"
-                disabled={!canNext}
-                onClick={nextStep}
-                data-testid="bharosa-next"
-                className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-orange-700 px-6 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {step === "insurance" && !wantInsurance ? t(L, "skipIns") : step === "review" ? t(L, "confirmCta") : t(L, "next")}
-                <ChevronRight className="h-5 w-5" />
-              </button>
+          {step !== "confirm" && step !== "language" && (
+            <div className="sticky bottom-[5.75rem] z-20 mt-6 rounded-2xl border border-amber-200/80 bg-amber-50/95 p-3 shadow-lg backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  data-testid="bharosa-back"
+                  className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-white px-5 font-semibold text-stone-800 ring-1 ring-stone-300 transition hover:bg-stone-50 active:scale-[0.99]"
+                >
+                  <ChevronLeft className="h-5 w-5" /> {t(L, "back")}
+                </button>
+                <button
+                  type="button"
+                  disabled={!canNext}
+                  onClick={nextStep}
+                  data-testid="bharosa-next"
+                  className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-orange-700 px-6 font-semibold text-white shadow-md transition hover:bg-orange-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                >
+                  {nextLabel()}
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -2640,21 +2732,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
       </div>
 
       <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-orange-300 bg-amber-50 px-4 py-3 shadow-[0_-8px_24px_rgba(124,45,18,0.12)] sm:px-6"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-orange-300 bg-amber-50/98 px-4 py-3 shadow-[0_-8px_24px_rgba(124,45,18,0.12)] backdrop-blur sm:px-6"
         aria-live="polite"
         data-testid="bharosa-subtitle"
       >
         <div className="mx-auto flex max-w-6xl items-start gap-3">
-          <span className="mt-0.5 shrink-0 text-orange-800">
+          <span
+            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              speaking && !muted ? "bg-orange-700 text-white" : "bg-orange-100 text-orange-800"
+            }`}
+          >
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                {t(L, "subtitleLabel")}
+                {t(L, "guideName")} · {t(L, "subtitleLabel")}
               </p>
               {speaking && !muted && (
-                <span className="rounded-full bg-orange-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                  <span className="bharosa-speak-dot" aria-hidden />
+                  <span className="bharosa-speak-dot" aria-hidden />
+                  <span className="bharosa-speak-dot" aria-hidden />
                   {t(L, "speaking")}
                 </span>
               )}
@@ -2675,7 +2774,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               audioUnlocked.current = true;
               playVoice(true);
             }}
-            className="min-h-11 shrink-0 rounded-full bg-orange-700 px-3 text-sm font-semibold text-white"
+            className="min-h-11 shrink-0 rounded-full bg-orange-700 px-3 text-sm font-semibold text-white transition hover:bg-orange-800 active:scale-[0.98]"
           >
             {t(L, "replay")}
           </button>
@@ -2692,7 +2791,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         busy={chatBusy}
         input={chatInput}
         setInput={setChatInput}
-        onSend={sendChat}
+        onSend={() => sendChat()}
+        onSuggest={(q) => sendChat(q)}
       />
     </div>
   );
@@ -2721,9 +2821,20 @@ function incomeKey(id: IncomeId): CopyKey {
   )[id];
 }
 
+function GuideChip({ lang }: { lang: Lang }) {
+  return (
+    <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-900 ring-1 ring-orange-200">
+      <HeartHandshake className="h-4 w-4" aria-hidden />
+      {t(lang, "guideName")}
+    </p>
+  );
+}
+
 function Card({ children }: { children: ReactNode }) {
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-card sm:p-8">{children}</section>
+    <section className="bharosa-step-enter rounded-3xl bg-white p-5 shadow-card sm:p-8">
+      {children}
+    </section>
   );
 }
 
@@ -2767,12 +2878,13 @@ function LangCard({
       type="button"
       data-testid={testId}
       onClick={onClick}
-      className={`min-h-28 rounded-3xl border-2 p-5 text-left ${
-        active ? "border-orange-700 bg-orange-50" : "border-stone-200 bg-white"
+      className={`min-h-28 rounded-3xl border-2 p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
+        active ? "border-orange-700 bg-orange-50 shadow-md" : "border-stone-200 bg-white"
       }`}
     >
       <p className="text-2xl font-bold">{title}</p>
       <p className="mt-1 text-sm text-stone-500">{sub}</p>
+      <p className="mt-3 text-sm font-semibold text-orange-800">{active ? "✓" : "→"} {title}</p>
     </button>
   );
 }
@@ -2975,6 +3087,7 @@ function ChatWidget({
   input,
   setInput,
   onSend,
+  onSuggest,
 }: {
   lang: Lang;
   open: boolean;
@@ -2984,16 +3097,23 @@ function ChatWidget({
   input: string;
   setInput: (v: string) => void;
   onSend: () => void;
+  onSuggest: (q: string) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, busy, open]);
 
+  const suggestions = [
+    t(lang, "chatSuggestBuffer"),
+    t(lang, "chatSuggestEmi"),
+    t(lang, "chatSuggestProtect"),
+  ];
+
   return (
     <div className="fixed bottom-32 right-4 z-50 sm:bottom-36 sm:right-6">
       {open && (
-        <div className="mb-3 flex h-[min(70vh,480px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-card">
+        <div className="mb-3 flex h-[min(70vh,520px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-card">
           <div className="flex items-center justify-between bg-orange-700 px-4 py-3 text-white">
             <p className="flex items-center gap-2 font-semibold">
               <CircleHelp className="h-5 w-5" /> {t(lang, "chatTitle")}
@@ -3020,6 +3140,20 @@ function ChatWidget({
                 {t(lang, "chatTyping")}
               </div>
             )}
+            {msgs.length <= 1 && !busy && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => onSuggest(s)}
+                    className="rounded-full bg-white px-3 py-2 text-left text-xs font-semibold text-orange-900 ring-1 ring-orange-200 transition hover:bg-orange-50"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             <div ref={endRef} />
           </div>
           <form
@@ -3033,11 +3167,11 @@ function ChatWidget({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t(lang, "chatPh")}
-              className="min-h-11 flex-1 rounded-full bg-amber-50 px-4 text-sm text-stone-900 outline-none ring-1 ring-stone-200"
+              className="min-h-11 flex-1 rounded-full bg-amber-50 px-4 text-sm text-stone-900 outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-orange-400"
             />
             <button
               type="submit"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-700 text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-700 text-white transition hover:bg-orange-800"
               aria-label="Send"
             >
               <Send className="h-4 w-4" />
@@ -3048,7 +3182,7 @@ function ChatWidget({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-700 text-white shadow-lg"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-700 text-white shadow-lg transition hover:scale-105 hover:bg-orange-800 active:scale-95"
         aria-label={t(lang, "chatTitle")}
         data-testid="bharosa-chat"
       >
