@@ -47,7 +47,6 @@ type Step =
   | "insurance"
   | "review"
   | "confirm";
-type BufferMode = "before" | "distributed";
 type PurposeId = "crop" | "vehicle" | "capital" | "livestock" | "shop";
 type IncomeId = "daily" | "gig" | "seasonal" | "mixed";
 type TrustSignalId =
@@ -184,8 +183,7 @@ function trustSkipsExtraVerification(score: number): boolean {
 
 const TENURE_OPTIONS = [6, 12, 24, 36] as const;
 type TenureMonths = (typeof TENURE_OPTIONS)[number];
-const MIN_EMI_RATIO = 0.6;
-const MAX_EMI_RATIO = 1.4;
+const COVER_SLABS = [25, 30, 35, 40, 45, 50] as const;
 const MIN_AMOUNT = 10_000;
 const MAX_AMOUNT = 200_000;
 const UNDO_SECONDS = 30;
@@ -354,51 +352,58 @@ const COPY = {
     yourRate: "Your rate with Trust Score",
     structureTitle: "How repayment actually works",
     structureSub:
-      "Choose your repayment tenure. Skip-eligible buffer months sit between payment months — finish early by paying every month, or stretch the calendar when income is tight. No interest on buffer months.",
+      "Choose your repayment tenure and buffer allowance. Mark any months as buffer (up to your allowance). Set any payment amount you need on other months — leftovers move to the remaining months so the full total is still paid across the calendar.",
     tenureLen: "Loan repayment tenure",
     tenureHint: "Longer tenures unlock as your loan amount increases.",
     tenureLocked: "Increase loan amount to unlock",
     monthsN: "{n} months",
-    bufferLen: "Buffer length",
+    bufferLen: "Buffer months you may mark",
     months6: "6 months",
     months12: "12 months",
     bufferHow: "How buffer months work",
     bufferHowBody:
-      "Your {repay} repayment months and {buffer} skip-eligible months are mixed across a {total}-month calendar. Pay all dues on time and you can finish in {repay} payment months. Use skip months when income is tight and the calendar can stretch to {total} months. Interest is still only on the {repay} payment months.",
+      "Your calendar has {total} months ({repay} repayment tenure + {buffer} buffer slots). Tap months below and mark up to {buffer} of them as buffer (₹0, no interest). On every other month you can set any instalment amount — if you pay less this month, the rest is spread across the remaining payment months so the full loan total is still cleared.",
     modeBefore: "Before repayment starts",
     modeBeforeHint: "No instalment until the buffer ends. Interest still does not run in this wait.",
-    modeDist: "Skip-eligible months inside the tenure",
-    modeDistHint: "Repayment months plus skip months spread through the calendar.",
+    modeDist: "You choose which months are buffer",
+    modeDistHint: "Mark any months as buffer up to your allowance.",
     timelineLegendRepay: "Payment month",
-    timelineLegendBuffer: "Skip-eligible buffer — ₹0, no interest",
-    interestTitle: "Interest is only on repayment months",
+    timelineLegendBuffer: "Buffer month — ₹0, no interest",
+    interestTitle: "Interest is only on repayment tenure",
     interestOn24: "Interest on repayment tenure",
-    interestOnBuffer: "Interest on buffer / skip months",
+    interestOnBuffer: "Interest on buffer months",
     interestSaved: "Amount you do not pay because buffer months are interest-free",
     interestSavedHint:
-      "If interest had run on the unpaid principal during buffer/skip months, this extra amount would have been added. BharosaLoan does not add it.",
+      "If interest had run on the unpaid principal during buffer months, this extra amount would have been added. BharosaLoan does not add it.",
     ratePreview:
       "Preview rate {rate}% p.a. — used only so you can see the buffer math. Your partner on the next step sets the final rate.",
-    emiTitle: "Month planner — pay, pay less, or skip",
+    emiTitle: "Month planner — choose buffer months & flexible EMI",
     emiSub:
-      "Every calendar month is shown below, including skip-eligible buffer months. Tap a month to choose Pay full, Pay less, or Request skip. Changes must be selected 2–3 days before that month’s due date.",
-    deadlineNote: "Select Pay less or Skip at least 2–3 days before the due date for that month.",
-    actionFull: "Pay full EMI",
-    actionLess: "Pay less (60–140%)",
-    actionSkip: "Request skip this month",
-    skipMonthInfo: "This is a skip-eligible buffer month — ₹0 due, and no interest is charged.",
-    skipRequested: "Skip requested — ₹0 this month. Other payment months rebalance.",
-    stdEmi: "Standard instalment",
-    minEmi: "Low-income floor (60%)",
-    maxEmi: "Good-income cap (140%)",
+      "All {total} calendar months are shown. Mark up to {buffer} as buffer. On payment months set any amount you need — the leftover is redistributed so you still pay the full total.",
+    deadlineNote: "Choose buffer or change an EMI at least 2–3 days before that month’s due date.",
+    actionFull: "Use equal share",
+    actionLess: "Set custom amount",
+    actionBuffer: "Mark as buffer",
+    actionUnbuffer: "Remove buffer mark",
+    bufferQuota: "Buffer months marked: {used} / {max}",
+    bufferQuotaFull: "You already marked {max} buffer months. Unmark one to choose another.",
+    skipMonthInfo: "This month is marked as buffer — ₹0 due, and no interest is charged.",
+    skipRequested: "Buffer month — ₹0. Other payment months carry the remaining total.",
+    stdEmi: "Standard EMI (if equal each tenure month)",
+    targetTotal: "Total to repay across calendar",
+    flexHint:
+      "Example: if the equal share is ₹2,314 and you pay ₹314 this month, the remaining ₹2,000 is spread across the other payment months.",
     thisMonth: "Selected month",
     resetMonths: "Reset all month choices",
-    lockHint: "Adjusted",
-    gapOver: "Scheduled total is {n} above the required tenure amount.",
-    gapUnder: "{n} still needs to be placed in other months (within the 60–140% band).",
+    lockHint: "Custom amount locked",
+    gapOver: "Scheduled total is {n} above the required amount — lower a locked month.",
+    gapUnder: "{n} still needs to be placed in other payment months.",
     gapOk: "Payment total matches. You can still reshuffle months.",
     calendarSpan: "Calendar span: {n} months",
-    repayCount: "{n} months of actual repayment",
+    repayCount: "{n}-month repayment tenure",
+    customAmount: "Amount for this month",
+    insFeeSlab: "Premium changes every 5% cover step",
+    insFeeSlabNote: "Cover slab {pct}% → premium {fee}",
     lenderTitle: "Choose a bank or NBFC partner",
     lenderSub:
       "Filter by Bank or NBFC. Every partner shows an RBI badge, rate, and fee before you pick.",
@@ -557,51 +562,58 @@ const COPY = {
     yourRate: "ट्रस्ट स्कोर के साथ आपकी दर",
     structureTitle: "वापसी वास्तव में कैसे होती है",
     structureSub:
-      "अपनी वापसी अवधि चुनें। छोड़ने-योग्य राहत महीने भुगतान महीनों के बीच होते हैं — हर महीने दें तो जल्दी पूरा; तंग महीने में कैलेंडर लंबा करें। राहत पर ब्याज नहीं।",
+      "वापसी अवधि और राहत भत्ता चुनें। अपनी स्थिति के अनुसार कोई भी महीने राहत के रूप में चिह्नित करें (सीमा तक)। बाकी महीनों पर अपनी ज़रूरत की किस्त तय करें — बाकी राशि अन्य महीनों में बँट जाती है ताकि पूरा योग कैलेंडर में चुकता रहे।",
     tenureLen: "ऋण वापसी की अवधि",
     tenureHint: "ऋण राशि बढ़ने पर लंबी अवधि खुलती है।",
     tenureLocked: "खोलने के लिए ऋण राशि बढ़ाएँ",
     monthsN: "{n} महीने",
-    bufferLen: "राहत अवधि की लंबाई",
+    bufferLen: "कितने महीने राहत चिह्नित कर सकते हैं",
     months6: "6 महीने",
     months12: "12 महीने",
     bufferHow: "राहत महीने कैसे काम करते हैं",
     bufferHowBody:
-      "आपके {repay} भुगतान महीने और {buffer} छोड़ने-योग्य महीने {total}-महीने के कैलेंडर में फैले हैं। समय पर सभी किस्तें दें तो {repay} भुगतान महीनों में पूरा हो सकता है। तंग महीने में छोड़ने-योग्य महीने इस्तेमाल करें — कैलेंडर {total} महीने तक खिंच सकता है। ब्याज फिर भी केवल {repay} भुगतान महीनों पर लगता है।",
+      "आपके कैलेंडर में {total} महीने हैं ({repay} वापसी अवधि + {buffer} राहत स्लॉट)। नीचे महीनों पर टैप करें और अधिकतम {buffer} को राहत (₹0, बिना ब्याज) चिह्नित करें। बाकी हर महीने पर कोई भी किस्त तय कर सकते हैं — इस महीने कम दें तो बाकी राशि अन्य भुगतान महीनों में बँट जाएगी ताकि पूरा ऋण योग पूरा हो।",
     modeBefore: "वापसी शुरू होने से पहले",
     modeBeforeHint: "राहत खत्म होने तक किस्त नहीं। इस इंतज़ार पर ब्याज नहीं चलता।",
-    modeDist: "अवधि के अंदर छोड़ने योग्य महीने",
-    modeDistHint: "भुगतान महीनों के साथ कैलेंडर में फैले छोड़ने योग्य महीने।",
+    modeDist: "आप चुनते हैं कौन से महीने राहत हैं",
+    modeDistHint: "अपनी सीमा तक कोई भी महीने राहत चिह्नित करें।",
     timelineLegendRepay: "भुगतान का महीना",
-    timelineLegendBuffer: "छोड़ने-योग्य राहत — ₹0, बिना ब्याज",
-    interestTitle: "ब्याज केवल भुगतान महीनों पर",
+    timelineLegendBuffer: "राहत महीना — ₹0, बिना ब्याज",
+    interestTitle: "ब्याज केवल वापसी अवधि पर",
     interestOn24: "वापसी अवधि पर ब्याज",
-    interestOnBuffer: "राहत / छोड़ने के महीनों पर ब्याज",
+    interestOnBuffer: "राहत महीनों पर ब्याज",
     interestSaved: "राहत महीने ब्याज-मुक्त होने से जो राशि नहीं लगती",
     interestSavedHint:
-      "अगर राहत/छोड़ने के महीनों में बकाया मूल राशि पर ब्याज चलता, तो यह अतिरिक्त राशि जुड़ती। BharosaLoan इसे नहीं जोड़ता।",
+      "अगर राहत महीनों में बकाया मूल राशि पर ब्याज चलता, तो यह अतिरिक्त राशि जुड़ती। BharosaLoan इसे नहीं जोड़ता।",
     ratePreview:
       "पूर्वावलोकन दर {rate}% प्रति वर्ष — केवल राहत अवधि का हिसाब दिखाने के लिए। अगले चरण का साझेदार अंतिम दर तय करेगा।",
-    emiTitle: "महीना योजना — पूरा भुगतान, कम भुगतान, या छोड़ें",
+    emiTitle: "महीना योजना — राहत चुनें और लचीली किस्त",
     emiSub:
-      "नीचे हर कैलेंडर महीना दिखता है, छोड़ने-योग्य राहत महीने भी। महीने पर टैप करें और पूरा भुगतान, कम भुगतान, या छोड़ने का अनुरोध चुनें। बदलाव उस महीने की देय तिथि से 2–3 दिन पहले चुनने होंगे।",
-    deadlineNote: "कम भुगतान या छोड़ने का विकल्प उस महीने की देय तिथि से कम-से-कम 2–3 दिन पहले चुनें।",
-    actionFull: "पूरी किस्त दें",
-    actionLess: "कम दें (60–140%)",
-    actionSkip: "इस महीने को छोड़ने का अनुरोध",
-    skipMonthInfo: "यह छोड़ने-योग्य राहत महीना है — ₹0 देय, और ब्याज नहीं लगता।",
-    skipRequested: "छोड़ने का अनुरोध — इस महीने ₹0। बाकी भुगतान महीने संतुलित होते हैं।",
-    stdEmi: "सामान्य किस्त",
-    minEmi: "कम कमाई की न्यूनतम सीमा (60%)",
-    maxEmi: "अच्छी कमाई की अधिकतम सीमा (140%)",
+      "सभी {total} कैलेंडर महीने दिखते हैं। अधिकतम {buffer} को राहत चिह्नित करें। भुगतान महीनों पर अपनी राशि तय करें — बाकी राशि बाँटी जाती है ताकि पूरा योग चुकता रहे।",
+    deadlineNote: "राहत या किस्त का बदलाव उस महीने की देय तिथि से कम-से-कम 2–3 दिन पहले चुनें।",
+    actionFull: "बराबर हिस्सा लगाएँ",
+    actionLess: "अपनी राशि तय करें",
+    actionBuffer: "राहत चिह्नित करें",
+    actionUnbuffer: "राहत हटाएँ",
+    bufferQuota: "राहत महीने चिह्नित: {used} / {max}",
+    bufferQuotaFull: "आप पहले ही {max} राहत महीने चिह्नित कर चुके हैं। दूसरा चुनने के लिए एक हटाएँ।",
+    skipMonthInfo: "यह महीना राहत चिह्नित है — ₹0 देय, और ब्याज नहीं लगता।",
+    skipRequested: "राहत महीना — ₹0। बाकी भुगतान महीने शेष योग उठाते हैं।",
+    stdEmi: "सामान्य किस्त (अगर अवधि के हर महीने बराबर)",
+    targetTotal: "कैलेंडर में चुकाने का कुल योग",
+    flexHint:
+      "उदाहरण: अगर बराबर हिस्सा ₹2,314 है और आप इस महीने ₹314 देते हैं, तो बाकी ₹2,000 अन्य भुगतान महीनों में बँट जाता है।",
     thisMonth: "चुना हुआ महीना",
     resetMonths: "सभी महीने के विकल्प रीसेट करें",
-    lockHint: "बदला गया",
-    gapOver: "निर्धारित योग ज़रूरी अवधि की राशि से {n} अधिक है।",
-    gapUnder: "{n} अभी अन्य महीनों में रखना बाकी है (60–140% सीमा में)।",
+    lockHint: "अपनी राशि लॉक",
+    gapOver: "निर्धारित योग ज़रूरी राशि से {n} अधिक है — किसी लॉक महीने को कम करें।",
+    gapUnder: "{n} अभी अन्य भुगतान महीनों में रखना बाकी है।",
     gapOk: "भुगतान का योग मेल खाता है। महीने फिर से बाँट सकते हैं।",
     calendarSpan: "कैलेंडर अवधि: {n} महीने",
-    repayCount: "वास्तविक वापसी के {n} महीने",
+    repayCount: "{n}-महीने की वापसी अवधि",
+    customAmount: "इस महीने की राशि",
+    insFeeSlab: "हर 5% कवर स्लैब पर प्रीमियम बदलता है",
+    insFeeSlabNote: "कवर स्लैब {pct}% → प्रीमियम {fee}",
     lenderTitle: "बैंक या एनबीएफसी साझेदार चुनें",
     lenderSub:
       "बैंक या एनबीएफसी से छानें। हर साझेदार पर आरबीआई बैज, दर और शुल्क चुनने से पहले दिखता है।",
@@ -893,105 +905,106 @@ function bufferInterestIfCharged(principal: number, annualPct: number, bufferMon
   return Math.round(principal * monthlyRate(annualPct) * bufferMonths);
 }
 
-/** One-time protection fee — priced as a real safety-net add-on, not a token amount. */
+/** Snap cover % to the nearest 5% slab between 25 and 50. */
+function coverSlab(coverPct: number): number {
+  const snapped = Math.round(coverPct / 5) * 5;
+  return Math.min(50, Math.max(25, snapped));
+}
+
+/**
+ * One-time protection fee by 5% cover slabs.
+ * Each step from 25% → 50% raises the premium (no flat floor that hides changes).
+ */
 function protectionFee(principal: number, coverPct: number): number {
-  // ~2.5% of principal at 25% cover → ~5.5% at 50% cover (min ₹999)
-  const pct = 0.025 + ((coverPct - 25) / 25) * 0.03;
-  return Math.max(999, Math.round(principal * pct));
+  const slab = coverSlab(coverPct);
+  const steps = (slab - 25) / 5; // 0 … 5
+  // 2.2% of principal at 25% cover, +0.8% of principal per +5% cover
+  const rate = 0.022 + steps * 0.008;
+  // Extra fixed step so small loans still change by at least ₹100 per slab
+  const fixedStep = 100;
+  return Math.max(199, Math.round(principal * rate) + steps * fixedStep);
 }
 
-type CalMonth = { kind: "buffer" | "skip" | "repay"; repayIndex: number | null; calIndex: number };
-
-function buildCalendar(repayMonths: number, bufferMonths: number, mode: BufferMode): CalMonth[] {
-  if (mode === "before") {
-    const wait: CalMonth[] = Array.from({ length: bufferMonths }, (_, i) => ({
-      kind: "buffer" as const,
-      repayIndex: null,
-      calIndex: i,
-    }));
-    const repay: CalMonth[] = Array.from({ length: repayMonths }, (_, i) => ({
-      kind: "repay" as const,
-      repayIndex: i,
-      calIndex: bufferMonths + i,
-    }));
-    return [...wait, ...repay];
-  }
-  const total = repayMonths + bufferMonths;
-  const kinds: ("skip" | "repay")[] = Array(total).fill("repay");
-  const used = new Set<number>();
-  for (let i = 0; i < bufferMonths; i++) {
-    let idx = Math.min(total - 1, Math.floor(((i + 0.5) * total) / bufferMonths));
-    while (used.has(idx) && idx < total - 1) idx += 1;
-    if (used.has(idx)) {
-      idx = kinds.findIndex((k, j) => k === "repay" && !used.has(j));
-    }
-    if (idx >= 0) {
-      kinds[idx] = "skip";
-      used.add(idx);
-    }
-  }
-  let repayIndex = 0;
-  return kinds.map((kind, calIndex) => {
-    if (kind === "skip") return { kind, repayIndex: null, calIndex };
-    const row: CalMonth = { kind: "repay", repayIndex, calIndex };
-    repayIndex += 1;
-    return row;
-  });
-}
-
-function rebalance(
+/** Spread target repayment across calendar months; buffer months stay ₹0. */
+function rebalanceCalendar(
+  calendarLen: number,
+  bufferMarks: Record<number, boolean>,
   overrides: Record<number, number>,
-  std: number,
-  minEmi: number,
-  maxEmi: number,
   target: number,
-  repayMonths: number,
-  skippedRepays: Record<number, boolean> = {},
 ): { amounts: number[]; gap: number } {
-  const amounts = Array.from({ length: repayMonths }, () => std);
-  const skipped = new Set(
-    Object.keys(skippedRepays)
+  const amounts = Array.from({ length: calendarLen }, () => 0);
+  const buffers = new Set(
+    Object.keys(bufferMarks)
       .map(Number)
-      .filter((i) => skippedRepays[i] && i >= 0 && i < repayMonths),
+      .filter((i) => bufferMarks[i] && i >= 0 && i < calendarLen),
   );
-  for (const i of skipped) amounts[i] = 0;
+  for (const i of buffers) amounts[i] = 0;
 
   const locked = Object.keys(overrides)
     .map(Number)
-    .filter((i) => i >= 0 && i < repayMonths && !skipped.has(i));
+    .filter((i) => i >= 0 && i < calendarLen && !buffers.has(i));
   let lockedSum = 0;
   for (const i of locked) {
-    amounts[i] = Math.min(maxEmi, Math.max(minEmi, Math.round(overrides[i])));
+    amounts[i] = Math.max(0, Math.round(overrides[i]));
     lockedSum += amounts[i];
   }
-  const unlocked = Array.from({ length: repayMonths }, (_, i) => i).filter(
-    (i) => !locked.includes(i) && !skipped.has(i),
+
+  const unlocked = Array.from({ length: calendarLen }, (_, i) => i).filter(
+    (i) => !buffers.has(i) && !locked.includes(i),
   );
   if (unlocked.length === 0) {
     const sum = amounts.reduce((a, b) => a + b, 0);
     return { amounts, gap: target - sum };
   }
-  let each = Math.round((target - lockedSum) / unlocked.length);
-  each = Math.min(maxEmi, Math.max(minEmi, each));
+
+  const remaining = target - lockedSum;
+  if (remaining <= 0) {
+    for (const i of unlocked) amounts[i] = 0;
+    const sum = amounts.reduce((a, b) => a + b, 0);
+    return { amounts, gap: target - sum };
+  }
+
+  const each = Math.max(0, Math.round(remaining / unlocked.length));
   for (const i of unlocked) amounts[i] = each;
   const sum = amounts.reduce((a, b) => a + b, 0);
   const last = unlocked[unlocked.length - 1];
-  const adjusted = Math.min(maxEmi, Math.max(minEmi, amounts[last] + (target - sum)));
-  amounts[last] = adjusted;
+  amounts[last] = Math.max(0, amounts[last] + (target - sum));
   const finalSum = amounts.reduce((a, b) => a + b, 0);
   return { amounts, gap: target - finalSum };
+}
+
+function countBufferMarks(bufferMarks: Record<number, boolean>, calendarLen: number): number {
+  return Object.keys(bufferMarks)
+    .map(Number)
+    .filter((i) => bufferMarks[i] && i >= 0 && i < calendarLen).length;
+}
+
+/** Keep at most `maxBuffers` buffer marks when the allowance shrinks. */
+function trimBufferMarks(
+  bufferMarks: Record<number, boolean>,
+  calendarLen: number,
+  maxBuffers: number,
+): Record<number, boolean> {
+  const kept = Object.keys(bufferMarks)
+    .map(Number)
+    .filter((i) => bufferMarks[i] && i >= 0 && i < calendarLen)
+    .sort((a, b) => a - b)
+    .slice(0, maxBuffers);
+  const next: Record<number, boolean> = {};
+  for (const i of kept) next[i] = true;
+  return next;
 }
 
 const FAQS: { keys: string[]; en: string; hi: string }[] = [
   {
     keys: ["miss", "late", "skip payment", "default", "नहीं दे", "चूक", "लेट", "किस्त नहीं", "भूल"],
-    en: "If a month is hard, use a skip-eligible buffer month or pay as low as 60% of the standard instalment. A missed payment by choice is not a covered protection event. Talk to your partner early — there is no hidden late-fee in this prototype schedule.",
-    hi: "अगर महीना कठिन हो, तो छोड़ने योग्य राहत महीना इस्तेमाल करें या सामान्य किस्त का कम-से-कम 60% दें। जानबूझकर छूटी किस्त सुरक्षा कवर में नहीं आती। साझेदार से जल्दी बात करें — इस प्रोटोटाइप में छिपा लेट-फीस शेड्यूल नहीं है।",
+    en: "If a month is hard, mark it as a buffer month (within your 6 or 12 allowance) for ₹0 due, or set any lower custom instalment — the rest is redistributed to other payment months. A missed payment by choice is not a covered protection event. Talk to your partner early — there is no hidden late-fee in this prototype schedule.",
+    hi: "अगर महीना कठिन हो, तो उसे राहत महीना चिह्नित करें (6 या 12 की सीमा में) — ₹0 देय — या कोई भी कम किस्त तय करें; बाकी राशि अन्य भुगतान महीनों में बँट जाती है। जानबूझकर छूटी किस्त सुरक्षा कवर में नहीं आती। साझेदार से जल्दी बात करें — इस प्रोटोटाइप में छिपा लेट-फीस शेड्यूल नहीं है।",
   },
   {
     keys: ["buffer", "skip", "wait", "राहत", "बफर", "छोड़"],
-    en: "You get 6 or 12 skip-eligible buffer months mixed through your calendar on top of your repayment tenure (6, 12, 24, or 36). Pay on time and you can finish in the repayment months; use skips when income is tight and the calendar stretches. Choose Pay less or Request skip in the app 2–3 days before that month’s due date. Interest is not charged on buffer or skip months.",
-    hi: "चुनी हुई वापसी अवधि (6, 12, 24, या 36) के अलावा 6 या 12 छोड़ने-योग्य राहत महीने कैलेंडर में बीच-बीच में मिलते हैं। समय पर दें तो भुगतान महीनों में पूरा; तंग महीने में छोड़ें तो कैलेंडर लंबा हो सकता है। ऐप में कम भुगतान या छोड़ने का अनुरोध देय तिथि से 2–3 दिन पहले चुनें। राहत/छोड़ने के महीनों पर ब्याज नहीं लगता।",
+    en: "Your calendar is repayment tenure plus buffer slots (for example 24 + 6 = 30 months). You choose which months are buffer — up to 6 or 12. Buffer months are ₹0 with no interest. On other months set any EMI you need; leftovers move so the full total is still paid. Change buffer or EMI 2–3 days before that month’s due date.",
+    hi: "कैलेंडर = वापसी अवधि + राहत स्लॉट (जैसे 24 + 6 = 30 महीने)। आप चुनते हैं कौन से महीने राहत हैं — अधिकतम 6 या 12। राहत पर ₹0 और बिना ब्याज। बाकी महीनों पर अपनी किस्त तय करें; बाकी राशि बँटती है ताकि पूरा योग चुकता रहे। बदलाव देय तिथि से 2–3 दिन पहले करें।",
   },
   {
     keys: ["interest", "byaj", "ब्याज", "interest-free", "free buffer"],
@@ -1000,13 +1013,13 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
   },
   {
     keys: ["emi", "flex", "instal", "install", "60", "140", "income", "किस्त", "लची"],
-    en: "There is no rigid equal EMI. Each repayment month can be between 60% and 140% of the standard instalment, as long as the full tenure together repays the total. Raise a good month, lower a lean month.",
-    hi: "कड़ी समान EMI नहीं है। हर भुगतान महीना सामान्य किस्त के 60% से 140% के बीच हो सकता है, बशर्ते पूरी अवधि का योग पूरा चुकता हो। अच्छे महीने अधिक, कम कमाई वाले महीने कम।",
+    en: "There is no hard EMI band. On any payment month you can set the amount you need — even much lower than the equal share. Whatever you do not pay that month is redistributed across the other payment months so the full calendar total is still cleared.",
+    hi: "किस्त की कोई कड़ी सीमा नहीं। किसी भी भुगतान महीने पर अपनी ज़रूरत की राशि तय करें — बराबर हिस्से से बहुत कम भी। जो इस महीने नहीं देते, वह अन्य भुगतान महीनों में बँट जाता है ताकि कैलेंडर का पूरा योग चुकता रहे।",
   },
   {
     keys: ["insur", "protect", "cover", "illness", "crop fail", "flood", "drought", "सुरक्षा", "बीमा", "फसल", "बीमार"],
-    en: "Protection is optional and off by default. If you add it, you choose 25–50% of the outstanding amount to be covered after a defined hardship: crop failure from flood or drought, serious illness, or loss of main income. The one-time fee is listed before you confirm.",
-    hi: "सुरक्षा वैकल्पिक है और डिफ़ॉल्ट रूप से बंद है। जोड़ने पर आप बकाया राशि का 25–50% कवर चुनते हैं — बाढ़/सूखे से फसल नुकसान, गंभीर बीमारी, या मुख्य कमाई जाना। एक बार का शुल्क पुष्टि से पहले दिखता है।",
+    en: "Protection is optional and off by default. Cover is chosen in 5% slabs from 25% to 50% of the outstanding amount. The one-time premium changes at every slab. Covered hardships include crop failure from flood or drought, serious illness, or loss of main income.",
+    hi: "सुरक्षा वैकल्पिक है और डिफ़ॉल्ट रूप से बंद है। कवर 25% से 50% तक हर 5% स्लैब में चुना जाता है। हर स्लैब पर एक बार का प्रीमियम बदलता है। कवर में बाढ़/सूखे से फसल नुकसान, गंभीर बीमारी, या मुख्य कमाई जाना शामिल है।",
   },
   {
     keys: ["cancel", "undo", "exit", "quit", "रद्द", "वापस", "छोड़ दो"],
@@ -1149,15 +1162,14 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const [collateralNote, setCollateralNote] = useState("");
   const [displayScore, setDisplayScore] = useState(0);
   const [bufferMonths, setBufferMonths] = useState<6 | 12>(6);
-  /** Buffer months are always mixed inside the calendar (not a block before start). */
-  const bufferMode: BufferMode = "distributed";
   const [lenderId, setLenderId] = useState<string | null>(null);
   const [lenderFilter, setLenderFilter] = useState<"all" | "bank" | "nbfc">("all");
   const [wantInsurance, setWantInsurance] = useState(false);
   const [coverPct, setCoverPct] = useState(25);
+  /** calIndex → locked custom EMI amount */
   const [overrides, setOverrides] = useState<Record<number, number>>({});
-  /** repayIndex → user requested a skip for that payment month */
-  const [skippedRepays, setSkippedRepays] = useState<Record<number, boolean>>({});
+  /** calIndex → user marked this month as buffer (₹0) */
+  const [bufferMarks, setBufferMarks] = useState<Record<number, boolean>>({});
   const [selectedCal, setSelectedCal] = useState(0);
   const [ack, setAck] = useState(false);
   const [undone, setUndone] = useState(false);
@@ -1184,23 +1196,21 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const baseRate = lender?.rate ?? LENDERS[0].rate;
   const rate = Math.round((baseRate - rateDiscount) * 100) / 100;
   const emi = standardEmi(amount, rate, repayMonths);
-  const minEmi = Math.round(emi * MIN_EMI_RATIO);
-  const maxEmi = Math.round(emi * MAX_EMI_RATIO);
   const interestTotal = totalInterest(amount, emi, repayMonths);
   const bufferIfCharged = bufferInterestIfCharged(amount, rate, bufferMonths);
   const proc = lender?.processingFee ?? 0;
-  const prot = wantInsurance ? protectionFee(amount, coverPct) : 0;
+  const activeCover = coverSlab(coverPct);
+  const prot = wantInsurance ? protectionFee(amount, activeCover) : 0;
   const targetPay = emi * repayMonths;
+  const calendarLen = repayMonths + bufferMonths;
   const { amounts, gap } = useMemo(
-    () => rebalance(overrides, emi, minEmi, maxEmi, targetPay, repayMonths, skippedRepays),
-    [overrides, emi, minEmi, maxEmi, targetPay, repayMonths, skippedRepays],
+    () => rebalanceCalendar(calendarLen, bufferMarks, overrides, targetPay),
+    [calendarLen, bufferMarks, overrides, targetPay],
   );
-  const calendar = useMemo(
-    () => buildCalendar(repayMonths, bufferMonths, bufferMode),
-    [repayMonths, bufferMonths, bufferMode],
-  );
-  const selectedMonth = calendar[selectedCal] ?? calendar[0];
-  const selectedRepay = selectedMonth?.repayIndex;
+  const bufferUsed = countBufferMarks(bufferMarks, calendarLen);
+  const selectedIsBuffer = !!bufferMarks[selectedCal];
+  const selectedLocked = overrides[selectedCal] !== undefined;
+  const barMax = Math.max(emi, ...amounts, 1);
   const grand = amount + interestTotal + proc + prot;
   const filteredLenders = useMemo(
     () =>
@@ -1217,15 +1227,32 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     if (!unlockedTenures.includes(repayMonths)) {
       setRepayMonths(unlockedTenures[unlockedTenures.length - 1]);
       setOverrides({});
-      setSkippedRepays({});
+      setBufferMarks({});
       setSelectedCal(0);
     }
   }, [unlockedTenures, repayMonths]);
 
-  // Keep selected calendar index in range when tenure/buffer changes.
+  // Keep selected index in range; trim buffer marks if allowance/length shrinks.
   useEffect(() => {
-    if (selectedCal >= calendar.length) setSelectedCal(0);
-  }, [calendar.length, selectedCal]);
+    if (selectedCal >= calendarLen) setSelectedCal(0);
+    setBufferMarks((prev) => {
+      const trimmed = trimBufferMarks(prev, calendarLen, bufferMonths);
+      const prevKeys = Object.keys(prev).sort().join(",");
+      const nextKeys = Object.keys(trimmed).sort().join(",");
+      return prevKeys === nextKeys ? prev : trimmed;
+    });
+    setOverrides((prev) => {
+      let changed = false;
+      const next: Record<number, number> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const i = Number(k);
+        if (i >= 0 && i < calendarLen) next[i] = v;
+        else changed = true;
+      }
+      if (!changed && Object.keys(next).length === Object.keys(prev).length) return prev;
+      return next;
+    });
+  }, [calendarLen, bufferMonths, selectedCal]);
 
   // Animate the displayed Trust Score toward the real total.
   useEffect(() => {
@@ -1272,8 +1299,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     }
     if (step === "structure") {
       return g === "hi"
-        ? `वापसी ${repayMonths} भुगतान महीनों की है। ${bufferMonths} छोड़ने-योग्य राहत महीने कैलेंडर में बीच-बीच में फैले हैं — कुल ${repayMonths + bufferMonths} महीने। समय पर दें तो ${repayMonths} में पूरा; तंग महीने में छोड़ें या कम दें — देय तिथि से 2–3 दिन पहले चुनें। ब्याज ${inr(interestTotal)} केवल भुगतान महीनों पर। राहत पर ब्याज शून्य।`
-        : `You have ${repayMonths} payment months. ${bufferMonths} skip-eligible buffer months sit between them across a ${repayMonths + bufferMonths}-month calendar. Finish in ${repayMonths} payments if you pay on time, or stretch to ${repayMonths + bufferMonths} by skipping. Choose pay less or skip 2–3 days before that month’s due date. Interest ${inr(interestTotal)} is only on payment months. Buffer interest is zero.`;
+        ? `कैलेंडर ${calendarLen} महीनों का है — ${repayMonths} वापसी अवधि और अधिकतम ${bufferMonths} राहत। आप स्वयं चुनें कौन से महीने राहत हैं। बाकी महीनों पर कोई भी किस्त तय करें; बाकी राशि अन्य महीनों में बँटती है। सामान्य किस्त लगभग ${inr(emi)} है। ब्याज ${inr(interestTotal)}। राहत पर ब्याज शून्य।`
+        : `Your calendar has ${calendarLen} months — ${repayMonths} repayment tenure plus up to ${bufferMonths} buffer months you choose. Mark any months as buffer, and set any EMI on the rest; leftovers redistribute so the full total is paid. Equal-share EMI is about ${inr(emi)}. Interest ${inr(interestTotal)}. Buffer interest is zero.`;
     }
     if (step === "lender") {
       return g === "hi"
@@ -1283,11 +1310,11 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     if (step === "insurance") {
       return g === "hi"
         ? wantInsurance
-          ? `सुरक्षा चालू है। कवर बकाया का ${coverPct} प्रतिशत है। एक बार का शुल्क ${inr(prot)} है। यह वैकल्पिक है।`
-          : "सुरक्षा वैकल्पिक है और अभी बंद है। आप 25 से 50 प्रतिशत कवर चुन सकते हैं। कोई छिपी शर्त नहीं।"
+          ? `सुरक्षा चालू है। कवर स्लैब ${activeCover} प्रतिशत है। एक बार का प्रीमियम ${inr(prot)} है — हर 5 प्रतिशत स्लैब पर बदलता है। यह वैकल्पिक है।`
+          : "सुरक्षा वैकल्पिक है और अभी बंद है। आप 25 से 50 प्रतिशत तक हर 5 प्रतिशत स्लैब चुन सकते हैं। प्रीमियम हर स्लैब पर बदलता है।"
         : wantInsurance
-          ? `Protection is on. Cover is ${coverPct} percent of the outstanding amount. The one-time fee is ${inr(prot)}. This remains optional.`
-          : "Protection is optional and currently off. You may choose 25 to 50 percent cover. No hidden terms.";
+          ? `Protection is on. Cover slab is ${activeCover} percent. The one-time premium is ${inr(prot)} and changes every 5 percent cover step. This remains optional.`
+          : "Protection is optional and currently off. Choose cover in 5 percent slabs from 25 to 50. The premium changes at every slab.";
     }
     if (step === "review") {
       return g === "hi"
@@ -1318,11 +1345,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     amount,
     repayMonths,
     bufferMonths,
+    calendarLen,
     interestTotal,
     bufferIfCharged,
     emi,
     wantInsurance,
     coverPct,
+    activeCover,
     prot,
     proc,
     grand,
@@ -1504,39 +1533,38 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     });
     setCollateralNote("");
     setDisplayScore(0);
-    setSkippedRepays({});
+    setBufferMarks({});
     setSelectedCal(0);
   }
 
-  function setMonthFull(repayIndex: number) {
-    setSkippedRepays((s) => {
-      const next = { ...s };
-      delete next[repayIndex];
-      return next;
-    });
+  function clearMonthOverride(calIndex: number) {
     setOverrides((o) => {
+      if (o[calIndex] === undefined) return o;
       const next = { ...o };
-      delete next[repayIndex];
+      delete next[calIndex];
       return next;
     });
   }
 
-  function setMonthLess(repayIndex: number, value?: number) {
-    setSkippedRepays((s) => {
-      const next = { ...s };
-      delete next[repayIndex];
-      return next;
-    });
-    setOverrides((o) => ({ ...o, [repayIndex]: value ?? amounts[repayIndex] ?? emi }));
+  function setMonthAmount(calIndex: number, value: number) {
+    if (bufferMarks[calIndex]) return;
+    const capped = Math.max(0, Math.min(targetPay, Math.round(value)));
+    setOverrides((o) => ({ ...o, [calIndex]: capped }));
   }
 
-  function setMonthSkip(repayIndex: number) {
-    setSkippedRepays((s) => ({ ...s, [repayIndex]: true }));
-    setOverrides((o) => {
-      const next = { ...o };
-      delete next[repayIndex];
-      return next;
+  function toggleBufferMark(calIndex: number) {
+    setBufferMarks((prev) => {
+      const on = !!prev[calIndex];
+      if (on) {
+        const next = { ...prev };
+        delete next[calIndex];
+        return next;
+      }
+      const used = countBufferMarks(prev, calendarLen);
+      if (used >= bufferMonths) return prev;
+      return { ...prev, [calIndex]: true };
     });
+    clearMonthOverride(calIndex);
   }
 
   function toggleTrustSignal(id: TrustSignalId) {
@@ -1965,7 +1993,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                           if (!unlocked) return;
                           setRepayMonths(n);
                           setOverrides({});
-                          setSkippedRepays({});
+                          setBufferMarks({});
                           setSelectedCal(0);
                         }}
                         className={`min-h-14 rounded-2xl px-2 py-2 font-semibold ${
@@ -1997,7 +2025,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                         onClick={() => {
                           setBufferMonths(n);
                           setSelectedCal(0);
-                          setSkippedRepays({});
+                          setBufferMarks((prev) => trimBufferMarks(prev, repayMonths + n, n));
+                          setOverrides({});
                         }}
                         className={`min-h-12 flex-1 rounded-2xl font-semibold ${
                           bufferMonths === n ? "bg-orange-700 text-white" : "bg-white ring-1 ring-stone-200"
@@ -2023,18 +2052,21 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   {t(L, "bufferHowBody", {
                     repay: repayMonths,
                     buffer: bufferMonths,
-                    total: repayMonths + bufferMonths,
+                    total: calendarLen,
                   })}
+                </p>
+                <p className="mt-3 text-sm font-semibold text-green-900">
+                  {t(L, "bufferQuota", { used: bufferUsed, max: bufferMonths })}
                 </p>
               </div>
 
               <Timeline
                 lang={L}
-                calendar={calendar}
+                calendarLen={calendarLen}
                 amounts={amounts}
-                maxEmi={maxEmi}
+                barMax={barMax}
                 selectedCal={selectedCal}
-                skippedRepays={skippedRepays}
+                bufferMarks={bufferMarks}
                 onSelectCal={setSelectedCal}
               />
 
@@ -2062,24 +2094,29 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
               <div className="mt-6">
                 <p className="text-lg font-bold">{t(L, "emiTitle")}</p>
-                <p className="mt-1 text-sm leading-relaxed text-stone-600">{t(L, "emiSub")}</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-600">
+                  {t(L, "emiSub", { total: calendarLen, buffer: bufferMonths })}
+                </p>
                 <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-sm font-medium text-orange-950 ring-1 ring-orange-200">
                   {t(L, "deadlineNote")}
                 </p>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">{t(L, "flexHint")}</p>
                 <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                   <Stat label={t(L, "stdEmi")} value={inr(emi)} />
-                  <Stat label={t(L, "minEmi")} value={inr(minEmi)} />
-                  <Stat label={t(L, "maxEmi")} value={inr(maxEmi)} />
+                  <Stat label={t(L, "targetTotal")} value={inr(targetPay)} />
+                  <Stat
+                    label={t(L, "bufferQuota", { used: bufferUsed, max: bufferMonths })}
+                    value={`${bufferUsed}/${bufferMonths}`}
+                  />
                 </div>
 
                 <MonthPlannerGrid
                   lang={L}
-                  calendar={calendar}
+                  calendarLen={calendarLen}
                   amounts={amounts}
                   overrides={overrides}
-                  skippedRepays={skippedRepays}
-                  minEmi={minEmi}
-                  maxEmi={maxEmi}
+                  bufferMarks={bufferMarks}
+                  barMax={barMax}
                   std={emi}
                   selectedCal={selectedCal}
                   onSelectCal={setSelectedCal}
@@ -2087,87 +2124,106 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
                 <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-stone-200">
                   <p className="font-semibold">
-                    {t(L, "thisMonth")}: {t(L, "month", { n: (selectedMonth?.calIndex ?? 0) + 1 })}
-                    {selectedMonth && selectedMonth.kind !== "repay" && (
+                    {t(L, "thisMonth")}: {t(L, "month", { n: selectedCal + 1 })}
+                    {selectedIsBuffer && (
                       <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-900">
                         {t(L, "skipMonth")}
                       </span>
                     )}
-                    {selectedRepay !== null &&
-                      selectedRepay !== undefined &&
-                      skippedRepays[selectedRepay] && (
-                        <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-900">
-                          {t(L, "actionSkip")}
-                        </span>
-                      )}
+                    {!selectedIsBuffer && selectedLocked && (
+                      <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-900">
+                        {t(L, "lockHint")}
+                      </span>
+                    )}
                   </p>
 
-                  {selectedMonth && selectedMonth.kind !== "repay" ? (
-                    <p className="mt-3 text-base leading-relaxed text-green-900">{t(L, "skipMonthInfo")}</p>
-                  ) : selectedRepay !== null && selectedRepay !== undefined ? (
-                    <>
-                      <p className="mt-2 text-2xl font-bold text-orange-800">
-                        {skippedRepays[selectedRepay] ? inr(0) : inr(amounts[selectedRepay])}
-                      </p>
-                      {skippedRepays[selectedRepay] && (
-                        <p className="mt-1 text-sm text-green-800">{t(L, "skipRequested")}</p>
-                      )}
-                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                        <button
-                          type="button"
-                          onClick={() => setMonthFull(selectedRepay)}
-                          className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
-                            !skippedRepays[selectedRepay] && overrides[selectedRepay] === undefined
-                              ? "bg-orange-700 text-white"
-                              : "bg-amber-50 text-stone-800 ring-1 ring-stone-200"
-                          }`}
-                        >
-                          {t(L, "actionFull")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMonthLess(selectedRepay)}
-                          className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
-                            !skippedRepays[selectedRepay] && overrides[selectedRepay] !== undefined
-                              ? "bg-orange-700 text-white"
-                              : "bg-amber-50 text-stone-800 ring-1 ring-stone-200"
-                          }`}
-                        >
-                          {t(L, "actionLess")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMonthSkip(selectedRepay)}
-                          className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
-                            skippedRepays[selectedRepay]
-                              ? "bg-green-800 text-white"
-                              : "bg-amber-50 text-stone-800 ring-1 ring-stone-200"
-                          }`}
-                        >
-                          {t(L, "actionSkip")}
-                        </button>
-                      </div>
-                      {!skippedRepays[selectedRepay] && overrides[selectedRepay] !== undefined && (
+                  <p className="mt-2 text-2xl font-bold text-orange-800">
+                    {selectedIsBuffer ? inr(0) : inr(amounts[selectedCal] ?? 0)}
+                  </p>
+
+                  {selectedIsBuffer ? (
+                    <p className="mt-2 text-base leading-relaxed text-green-900">{t(L, "skipMonthInfo")}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-stone-600">
+                      {t(L, "stdEmi")}: {inr(emi)}
+                    </p>
+                  )}
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleBufferMark(selectedCal)}
+                      disabled={!selectedIsBuffer && bufferUsed >= bufferMonths}
+                      title={
+                        !selectedIsBuffer && bufferUsed >= bufferMonths
+                          ? t(L, "bufferQuotaFull", { max: bufferMonths })
+                          : undefined
+                      }
+                      className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
+                        selectedIsBuffer
+                          ? "bg-green-800 text-white"
+                          : bufferUsed >= bufferMonths
+                            ? "cursor-not-allowed bg-stone-100 text-stone-400"
+                            : "bg-amber-50 text-stone-800 ring-1 ring-stone-200"
+                      }`}
+                    >
+                      {selectedIsBuffer ? t(L, "actionUnbuffer") : t(L, "actionBuffer")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedIsBuffer}
+                      onClick={() => clearMonthOverride(selectedCal)}
+                      className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
+                        !selectedIsBuffer && !selectedLocked
+                          ? "bg-orange-700 text-white"
+                          : "bg-amber-50 text-stone-800 ring-1 ring-stone-200 disabled:opacity-50"
+                      }`}
+                    >
+                      {t(L, "actionFull")}
+                    </button>
+                  </div>
+
+                  {!selectedIsBuffer && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-stone-700">
+                        {t(L, "customAmount")}
                         <input
-                          type="range"
-                          min={minEmi}
-                          max={maxEmi}
-                          step={50}
-                          value={amounts[selectedRepay]}
-                          onChange={(e) => setMonthLess(selectedRepay, Number(e.target.value))}
-                          className="mt-3 h-3 w-full cursor-pointer accent-orange-700"
-                          aria-label={t(L, "flexBand")}
+                          type="number"
+                          min={0}
+                          max={targetPay}
+                          step={1}
+                          value={amounts[selectedCal] ?? 0}
+                          onChange={(e) => setMonthAmount(selectedCal, Number(e.target.value) || 0)}
+                          className="mt-1 min-h-12 w-full rounded-xl bg-amber-50 px-3 text-lg font-bold text-stone-900 outline-none ring-1 ring-stone-200"
                         />
-                      )}
-                    </>
-                  ) : null}
+                      </label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={targetPay}
+                        step={10}
+                        value={amounts[selectedCal] ?? 0}
+                        onChange={(e) => setMonthAmount(selectedCal, Number(e.target.value))}
+                        className="mt-3 h-3 w-full cursor-pointer accent-orange-700"
+                        aria-label={t(L, "customAmount")}
+                      />
+                      <div className="mt-1 flex justify-between text-xs text-stone-500">
+                        <span>{inr(0)}</span>
+                        <span>{inr(targetPay)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedIsBuffer && bufferUsed >= bufferMonths && (
+                    <p className="mt-2 text-sm text-amber-800">{t(L, "bufferQuotaFull", { max: bufferMonths })}</p>
+                  )}
 
                   <button
                     type="button"
                     className="mt-3 min-h-11 text-sm font-semibold text-orange-800 underline"
                     onClick={() => {
                       setOverrides({});
-                      setSkippedRepays({});
+                      setBufferMarks({});
                     }}
                   >
                     {t(L, "resetMonths")}
@@ -2332,13 +2388,29 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               {wantInsurance && (
                 <div className="mt-6 rounded-2xl bg-white p-4 ring-1 ring-green-200 sm:p-5">
                   <p className="font-semibold">{t(L, "insCover")}</p>
-                  <p className="mt-2 text-2xl font-bold text-green-900">{t(L, "insCoverOf", { pct: coverPct })}</p>
+                  <p className="mt-2 text-2xl font-bold text-green-900">{t(L, "insCoverOf", { pct: activeCover })}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {COVER_SLABS.map((slab) => (
+                      <button
+                        key={slab}
+                        type="button"
+                        onClick={() => setCoverPct(slab)}
+                        className={`min-h-11 rounded-full px-3 text-sm font-semibold ${
+                          activeCover === slab
+                            ? "bg-green-800 text-white"
+                            : "bg-green-50 text-green-950 ring-1 ring-green-200"
+                        }`}
+                      >
+                        {slab}%
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="range"
                     min={25}
                     max={50}
                     step={5}
-                    value={coverPct}
+                    value={activeCover}
                     onChange={(e) => setCoverPct(Number(e.target.value))}
                     className="mt-4 h-3 w-full cursor-pointer accent-green-800"
                     aria-label={t(L, "coverLine")}
@@ -2349,12 +2421,34 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   </div>
                   <p className="mt-4 text-sm leading-relaxed text-stone-600">
                     {t(L, "insExample", {
-                      cover: inr((amount * coverPct) / 100),
+                      cover: inr((amount * activeCover) / 100),
                       principal: inr(amount),
                     })}
                   </p>
                   <Line k={t(L, "insFee")} v={inr(prot)} strong />
-                  <p className="text-sm text-stone-500">{t(L, "insFeeHint")}</p>
+                  <p className="mt-1 text-sm font-medium text-green-900">{t(L, "insFeeSlab")}</p>
+                  <p className="text-sm text-stone-500">
+                    {t(L, "insFeeSlabNote", { pct: activeCover, fee: inr(prot) })}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-500">{t(L, "insFeeHint")}</p>
+                  <div className="mt-3 overflow-x-auto rounded-xl bg-amber-50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                      {t(L, "insFeeSlab")}
+                    </p>
+                    <div className="mt-2 flex min-w-max gap-3 text-sm">
+                      {COVER_SLABS.map((slab) => (
+                        <div
+                          key={slab}
+                          className={`rounded-lg px-2 py-1 ${
+                            activeCover === slab ? "bg-green-800 text-white" : "text-stone-700"
+                          }`}
+                        >
+                          <span className="font-semibold">{slab}%</span>
+                          <span className="ml-1">{inr(protectionFee(amount, slab))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2388,10 +2482,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   <Row k={t(L, "purposeLine")} v={t(L, purposeKey(purpose))} />
                   <Row k={t(L, "incomeLine")} v={t(L, incomeKey(income))} />
                   <Row k={t(L, "tenure")} v={t(L, "years2", { n: repayMonths })} />
-                  <Row k={t(L, "bufferLine")} v={`${bufferMonths} · ${t(L, "modeDist")}`} />
+                  <Row
+                    k={t(L, "bufferLine")}
+                    v={`${bufferUsed}/${bufferMonths} · ${t(L, "modeDist")}`}
+                  />
                   <Row
                     k={t(L, "coverLine")}
-                    v={wantInsurance ? `${coverPct}%` : t(L, "protNone")}
+                    v={wantInsurance ? `${activeCover}%` : t(L, "protNone")}
                   />
                 </div>
                 <div className="rounded-2xl bg-white p-4 ring-1 ring-stone-200">
@@ -2743,19 +2840,19 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function Timeline({
   lang,
-  calendar,
+  calendarLen,
   amounts,
-  maxEmi,
+  barMax,
   selectedCal,
-  skippedRepays,
+  bufferMarks,
   onSelectCal,
 }: {
   lang: Lang;
-  calendar: CalMonth[];
+  calendarLen: number;
   amounts: number[];
-  maxEmi: number;
+  barMax: number;
   selectedCal: number;
-  skippedRepays: Record<number, boolean>;
+  bufferMarks: Record<number, boolean>;
   onSelectCal: (i: number) => void;
 }) {
   return (
@@ -2770,40 +2867,37 @@ function Timeline({
         </span>
       </div>
       <div className="flex gap-1 overflow-x-auto pb-2">
-        {calendar.map((m) => {
-          const isPlannedSkip = m.kind !== "repay";
-          const isUserSkip = m.repayIndex !== null && !!skippedRepays[m.repayIndex];
-          const isSkip = isPlannedSkip || isUserSkip;
-          const h =
-            !isSkip && m.repayIndex !== null
-              ? Math.max(18, (amounts[m.repayIndex] / Math.max(1, maxEmi)) * 64)
-              : 18;
-          const sel = m.calIndex === selectedCal;
+        {Array.from({ length: calendarLen }, (_, calIndex) => {
+          const isBuffer = !!bufferMarks[calIndex];
+          const h = !isBuffer
+            ? Math.max(18, ((amounts[calIndex] ?? 0) / Math.max(1, barMax)) * 64)
+            : 18;
+          const sel = calIndex === selectedCal;
           return (
             <button
-              key={m.calIndex}
+              key={calIndex}
               type="button"
-              title={`${t(lang, "month", { n: m.calIndex + 1 })} · ${
-                isSkip ? t(lang, "skipMonth") : t(lang, "repayMonth")
+              title={`${t(lang, "month", { n: calIndex + 1 })} · ${
+                isBuffer ? t(lang, "skipMonth") : t(lang, "repayMonth")
               }`}
-              onClick={() => onSelectCal(m.calIndex)}
+              onClick={() => onSelectCal(calIndex)}
               className={`flex w-7 shrink-0 flex-col items-center justify-end rounded-md pt-6 sm:w-8 ${
                 sel ? "ring-2 ring-orange-700" : ""
               }`}
             >
               <span
                 className={`w-full rounded-t-md ${
-                  isSkip ? "border border-dashed border-green-800 bg-green-50" : "bg-orange-600"
+                  isBuffer ? "border border-dashed border-green-800 bg-green-50" : "bg-orange-600"
                 }`}
                 style={{ height: h }}
               />
-              <span className="mt-1 text-[9px] text-stone-500">{m.calIndex + 1}</span>
+              <span className="mt-1 text-[9px] text-stone-500">{calIndex + 1}</span>
             </button>
           );
         })}
       </div>
       <p className="mt-1 flex items-center gap-1 text-xs text-stone-500">
-        <CalendarRange className="h-3.5 w-3.5" /> {calendar.length} {lang === "hi" ? "महीने" : "months"}
+        <CalendarRange className="h-3.5 w-3.5" /> {calendarLen} {lang === "hi" ? "महीने" : "months"}
       </p>
     </div>
   );
@@ -2811,56 +2905,51 @@ function Timeline({
 
 function MonthPlannerGrid({
   lang,
-  calendar,
+  calendarLen,
   amounts,
   overrides,
-  skippedRepays,
-  minEmi,
-  maxEmi,
+  bufferMarks,
+  barMax,
   std,
   selectedCal,
   onSelectCal,
 }: {
   lang: Lang;
-  calendar: CalMonth[];
+  calendarLen: number;
   amounts: number[];
   overrides: Record<number, number>;
-  skippedRepays: Record<number, boolean>;
-  minEmi: number;
-  maxEmi: number;
+  bufferMarks: Record<number, boolean>;
+  barMax: number;
   std: number;
   selectedCal: number;
   onSelectCal: (i: number) => void;
 }) {
   return (
     <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
-      {calendar.map((m) => {
-        const isPlannedSkip = m.kind !== "repay";
-        const isUserSkip = m.repayIndex !== null && !!skippedRepays[m.repayIndex];
-        const isSkip = isPlannedSkip || isUserSkip;
-        const val = !isSkip && m.repayIndex !== null ? amounts[m.repayIndex] : 0;
-        const locked = m.repayIndex !== null && overrides[m.repayIndex] !== undefined;
-        const pct = isSkip ? 0 : ((val - minEmi) / Math.max(1, maxEmi - minEmi)) * 100;
-        const skipLabel = isPlannedSkip ? t(lang, "skipMonth") : t(lang, "userSkipMonth");
+      {Array.from({ length: calendarLen }, (_, calIndex) => {
+        const isBuffer = !!bufferMarks[calIndex];
+        const val = isBuffer ? 0 : amounts[calIndex] ?? 0;
+        const locked = overrides[calIndex] !== undefined;
+        const pct = isBuffer ? 0 : (val / Math.max(1, barMax)) * 100;
         return (
           <button
-            key={m.calIndex}
+            key={calIndex}
             type="button"
-            onClick={() => onSelectCal(m.calIndex)}
+            onClick={() => onSelectCal(calIndex)}
             className={`flex h-28 flex-col justify-end rounded-xl p-1 ${
-              selectedCal === m.calIndex
+              selectedCal === calIndex
                 ? "bg-orange-100 ring-2 ring-orange-700"
-                : isSkip
+                : isBuffer
                   ? "bg-green-50 ring-1 ring-dashed ring-green-700"
                   : "bg-amber-50"
             }`}
-            aria-label={`${t(lang, "month", { n: m.calIndex + 1 })} ${
-              isSkip ? skipLabel : inr(val)
+            aria-label={`${t(lang, "month", { n: calIndex + 1 })} ${
+              isBuffer ? t(lang, "skipMonth") : inr(val)
             }`}
           >
-            {isSkip ? (
+            {isBuffer ? (
               <span className="flex flex-1 items-center justify-center px-0.5 text-center text-[10px] font-bold leading-tight text-green-800">
-                {skipLabel}
+                {t(lang, "skipMonth")}
               </span>
             ) : (
               <span
@@ -2868,8 +2957,8 @@ function MonthPlannerGrid({
                 style={{ height: `${Math.max(12, pct * 0.72)}%` }}
               />
             )}
-            <span className="mt-1 text-[10px] font-medium text-stone-600">{m.calIndex + 1}</span>
-            {locked && !isSkip && <span className="text-[8px] text-orange-800">●</span>}
+            <span className="mt-1 text-[10px] font-medium text-stone-600">{calIndex + 1}</span>
+            {locked && !isBuffer && <span className="text-[8px] text-orange-800">●</span>}
           </button>
         );
       })}
