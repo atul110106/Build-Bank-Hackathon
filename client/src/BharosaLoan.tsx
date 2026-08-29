@@ -66,12 +66,31 @@ const STEPS: Step[] = [
   "confirm",
 ];
 
-const REPAY_MONTHS = 24;
+const TENURE_OPTIONS = [6, 12, 24, 36] as const;
+type TenureMonths = (typeof TENURE_OPTIONS)[number];
 const MIN_EMI_RATIO = 0.6;
 const MAX_EMI_RATIO = 1.4;
 const MIN_AMOUNT = 10_000;
 const MAX_AMOUNT = 200_000;
-const UNDO_SECONDS = 20;
+const UNDO_SECONDS = 30;
+
+/** Longer tenures unlock as the loan amount grows. */
+function availableTenures(amount: number): TenureMonths[] {
+  const opts: TenureMonths[] = [6, 12];
+  if (amount >= 25_000) opts.push(24);
+  if (amount >= 50_000) opts.push(36);
+  return opts;
+}
+
+function tenureUnlockHint(months: TenureMonths, lang: Lang): string | null {
+  if (months === 24) {
+    return lang === "hi" ? "₹25,000 या अधिक पर उपलब्ध" : "Available from ₹25,000";
+  }
+  if (months === 36) {
+    return lang === "hi" ? "₹50,000 या अधिक पर उपलब्ध" : "Available from ₹50,000";
+  }
+  return null;
+}
 
 const LENDERS: Lender[] = [
   {
@@ -91,8 +110,8 @@ const LENDERS: Lender[] = [
     rate: 11.9,
     processingFee: 499,
     badge: "licensed",
-    focusEn: "Lowest listed rate. ₹499 processing fee, shown up front.",
-    focusHi: "सबसे कम सूचीबद्ध दर। ₹499 प्रोसेसिंग शुल्क, पहले से दिखता है।",
+    focusEn: "Lowest listed bank rate. ₹499 processing fee, shown up front.",
+    focusHi: "सबसे कम सूचीबद्ध बैंक दर। ₹499 प्रोसेसिंग शुल्क, पहले से दिखता है।",
   },
   {
     id: "sahayak",
@@ -105,6 +124,16 @@ const LENDERS: Lender[] = [
     focusHi: "अनियमित साप्ताहिक कमाई को ध्यान में रखकर बनाया गया।",
   },
   {
+    id: "riverstone",
+    name: "Riverstone Bank",
+    kind: "bank",
+    rate: 12.0,
+    processingFee: 350,
+    badge: "licensed",
+    focusEn: "Bank partner for gig and daily-wage income. ₹350 processing fee.",
+    focusHi: "गिग और दैनिक मज़दूरी के लिए बैंक साझेदार। ₹350 प्रोसेसिंग शुल्क।",
+  },
+  {
     id: "harvest",
     name: "HarvestLink NBFC",
     kind: "nbfc",
@@ -113,6 +142,16 @@ const LENDERS: Lender[] = [
     badge: "registered",
     focusEn: "Crop-cycle friendly. ₹250 processing fee, no other add-ons.",
     focusHi: "फसल चक्र के अनुकूल। ₹250 प्रोसेसिंग शुल्क, कोई और जोड़ नहीं।",
+  },
+  {
+    id: "apexco",
+    name: "Apex Cooperative Bank",
+    kind: "bank",
+    rate: 12.6,
+    processingFee: 0,
+    badge: "licensed",
+    focusEn: "Cooperative bank option with ₹0 processing fee.",
+    focusHi: "सहकारी बैंक विकल्प — प्रोसेसिंग शुल्क ₹0।",
   },
 ];
 
@@ -172,7 +211,11 @@ const COPY = {
       "A 6-month buffer is a common starting point. You can choose 12 if you want more breathing room.",
     structureTitle: "How repayment actually works",
     structureSub:
-      "You repay for 24 months. Buffer months are extra time with no extra interest.",
+      "Choose your repayment tenure. Buffer months are extra time with no extra interest.",
+    tenureLen: "Loan repayment tenure",
+    tenureHint: "Longer tenures unlock as your loan amount increases.",
+    tenureLocked: "Increase loan amount to unlock",
+    monthsN: "{n} months",
     bufferLen: "Buffer length",
     months6: "6 months",
     months12: "12 months",
@@ -180,11 +223,11 @@ const COPY = {
     modeBefore: "Before repayment starts",
     modeBeforeHint: "No instalment until the buffer ends. Interest still does not run in this wait.",
     modeDist: "Skip-eligible months inside the tenure",
-    modeDistHint: "24 repayment months plus skip months spread through the calendar.",
+    modeDistHint: "Repayment months plus skip months spread through the calendar.",
     timelineLegendRepay: "Repayment month",
     timelineLegendBuffer: "Buffer / skip — ₹0, no interest",
-    interestTitle: "Interest is only on 24 repayment months",
-    interestOn24: "Interest on 24-month repayment",
+    interestTitle: "Interest is only on repayment months",
+    interestOn24: "Interest on repayment tenure",
     interestOnBuffer: "Interest on buffer period",
     interestSaved: "Amount you do not pay because the buffer is interest-free",
     interestSavedHint:
@@ -193,21 +236,26 @@ const COPY = {
       "Preview rate {rate}% p.a. — used only so you can see the buffer math. Your partner on the next step sets the final rate.",
     emiTitle: "Flexible instalments (60% – 140%)",
     emiSub:
-      "Tap a repayment month and move it up or down. Other unlocked months rebalance so the 24-month total still matches.",
+      "Tap a repayment month and move it up or down. Other unlocked months rebalance so the tenure total still matches.",
     stdEmi: "Standard instalment",
     minEmi: "Low-income floor (60%)",
     maxEmi: "Good-income cap (140%)",
     thisMonth: "Selected month",
     resetMonths: "Reset all months to standard",
     lockHint: "Adjusted",
-    gapOver: "Scheduled total is {n} above the required 24-month amount.",
+    gapOver: "Scheduled total is {n} above the required tenure amount.",
     gapUnder: "{n} still needs to be placed in other months (within the 60–140% band).",
-    gapOk: "24-month total matches. You can still reshuffle months.",
+    gapOk: "Tenure total matches. You can still reshuffle months.",
     calendarSpan: "Calendar span: {n} months",
-    repayCount: "24 months of actual repayment",
-    lenderTitle: "Choose an RBI-verified partner",
+    repayCount: "{n} months of actual repayment",
+    lenderTitle: "Choose a bank or NBFC partner",
     lenderSub:
-      "Every partner below is shown only with a visible registration badge. Rates and fees are listed before you pick.",
+      "Filter by Bank or NBFC. Every partner shows an RBI badge, rate, and fee before you pick.",
+    filterAll: "All partners",
+    filterBank: "Banks",
+    filterNbfc: "NBFCs",
+    kindBank: "Bank",
+    kindNbfc: "NBFC",
     rbiReg: "RBI Registered",
     rbiLic: "RBI Licensed",
     annualRate: "Annual interest",
@@ -241,7 +289,7 @@ const COPY = {
     confirmNeedAck: "Tick the box above to confirm you have seen the full total.",
     breakdown: "Payment breakdown",
     principal: "Loan amount you receive",
-    interest: "Interest (24 repayment months only)",
+    interest: "Interest (repayment months only)",
     bufferInterest: "Buffer-period interest",
     proc: "Processing fee",
     protFee: "Protection fee (optional)",
@@ -255,14 +303,18 @@ const COPY = {
     coverLine: "Protection cover",
     confirmTitle: "Application received",
     confirmSub:
-      "You can still undo this in the next {n} seconds. After that, you would still have a full day in a live product to cancel before money is sent.",
-    undo: "Undo application",
+      "You can cancel this application in the next {n} seconds. Or skip the wait if you are sure.",
+    undo: "Cancel this application",
     undone: "Application cancelled. No amount is due.",
     doneKeep: "Keep this application",
     afterUndo: "Nothing was submitted. You can start again or leave.",
     restart: "Start over",
-    cooling: "Cancel / undo window is open",
-    coolingClosed: "Undo window ended — you can still exit; no money has been sent in this prototype.",
+    cooling: "Cancel window open — 30 seconds",
+    coolingClosed: "Cancel window ended — you can still exit; no money has been sent in this prototype.",
+    skipWait: "Skip wait & keep application",
+    waitSkipped: "Wait skipped. Your application is kept. No money has been sent in this prototype.",
+    speaking: "Speaking…",
+    voiceUnavailable: "Audio voice is limited on this device — please read the subtitle below.",
     trustTitle: "Trust checklist",
     trustRbi: "RBI-verified partners only",
     trustExit: "Cancel or exit anytime",
@@ -283,7 +335,7 @@ const COPY = {
     repayMonth: "Pay",
     waitMonth: "Wait",
     flexBand: "Your band this month",
-    years2: "2 years (24 months)",
+    years2: "{n} months repayment",
     plusBuffer: "+ {n} buffer months",
   },
   hi: {
@@ -326,7 +378,11 @@ const COPY = {
       "6 महीने की राहत अवधि एक साधारण शुरुआत है। ज़्यादा समय चाहिए तो 12 महीने चुनें।",
     structureTitle: "वापसी वास्तव में कैसे होती है",
     structureSub:
-      "आप 24 महीने चुकाते हैं। राहत के महीने अतिरिक्त समय हैं — उन पर कोई अतिरिक्त ब्याज नहीं।",
+      "अपनी वापसी अवधि चुनें। राहत के महीने अतिरिक्त समय हैं — उन पर कोई अतिरिक्त ब्याज नहीं।",
+    tenureLen: "ऋण वापसी की अवधि",
+    tenureHint: "ऋण राशि बढ़ने पर लंबी अवधि खुलती है।",
+    tenureLocked: "खोलने के लिए ऋण राशि बढ़ाएँ",
+    monthsN: "{n} महीने",
     bufferLen: "राहत अवधि की लंबाई",
     months6: "6 महीने",
     months12: "12 महीने",
@@ -334,11 +390,11 @@ const COPY = {
     modeBefore: "वापसी शुरू होने से पहले",
     modeBeforeHint: "राहत खत्म होने तक किस्त नहीं। इस इंतज़ार पर ब्याज नहीं चलता।",
     modeDist: "अवधि के अंदर छोड़ने योग्य महीने",
-    modeDistHint: "24 भुगतान महीनों के साथ कैलेंडर में फैले छोड़ने योग्य महीने।",
+    modeDistHint: "भुगतान महीनों के साथ कैलेंडर में फैले छोड़ने योग्य महीने।",
     timelineLegendRepay: "भुगतान का महीना",
     timelineLegendBuffer: "राहत / छोड़ें — ₹0, बिना ब्याज",
-    interestTitle: "ब्याज केवल 24 भुगतान महीनों पर",
-    interestOn24: "24 महीने की वापसी पर ब्याज",
+    interestTitle: "ब्याज केवल भुगतान महीनों पर",
+    interestOn24: "वापसी अवधि पर ब्याज",
     interestOnBuffer: "राहत अवधि पर ब्याज",
     interestSaved: "राहत अवधि ब्याज-मुक्त होने से जो राशि नहीं लगती",
     interestSavedHint:
@@ -347,21 +403,26 @@ const COPY = {
       "पूर्वावलोकन दर {rate}% प्रति वर्ष — केवल राहत अवधि का हिसाब दिखाने के लिए। अगले चरण का साझेदार अंतिम दर तय करेगा।",
     emiTitle: "लचीली किस्त (60% – 140%)",
     emiSub:
-      "किसी भुगतान महीने पर टैप करें और उसे ऊपर-नीचे करें। बाकी खुले महीने संतुलित हो जाते हैं ताकि 24 महीने का योग वही रहे।",
+      "किसी भुगतान महीने पर टैप करें और उसे ऊपर-नीचे करें। बाकी खुले महीने संतुलित हो जाते हैं ताकि अवधि का योग वही रहे।",
     stdEmi: "सामान्य किस्त",
     minEmi: "कम कमाई की न्यूनतम सीमा (60%)",
     maxEmi: "अच्छी कमाई की अधिकतम सीमा (140%)",
     thisMonth: "चुना हुआ महीना",
     resetMonths: "सभी महीने सामान्य किस्त पर लाएँ",
     lockHint: "बदला गया",
-    gapOver: "निर्धारित योग ज़रूरी 24-महीने की राशि से {n} अधिक है।",
+    gapOver: "निर्धारित योग ज़रूरी अवधि की राशि से {n} अधिक है।",
     gapUnder: "{n} अभी अन्य महीनों में रखना बाकी है (60–140% सीमा में)।",
-    gapOk: "24 महीने का योग मेल खाता है। महीने फिर से बाँट सकते हैं।",
+    gapOk: "अवधि का योग मेल खाता है। महीने फिर से बाँट सकते हैं।",
     calendarSpan: "कैलेंडर अवधि: {n} महीने",
-    repayCount: "वास्तविक वापसी के 24 महीने",
-    lenderTitle: "आरबीआई-सत्यापित साझेदार चुनें",
+    repayCount: "वास्तविक वापसी के {n} महीने",
+    lenderTitle: "बैंक या एनबीएफसी साझेदार चुनें",
     lenderSub:
-      "नीचे हर साझेदार के साथ पंजीकरण बैज दिखता है। दर और शुल्क चुनने से पहले लिखे हैं।",
+      "बैंक या एनबीएफसी से छानें। हर साझेदार पर आरबीआई बैज, दर और शुल्क चुनने से पहले दिखता है।",
+    filterAll: "सभी साझेदार",
+    filterBank: "बैंक",
+    filterNbfc: "एनबीएफसी",
+    kindBank: "बैंक",
+    kindNbfc: "एनबीएफसी",
     rbiReg: "आरबीआई पंजीकृत",
     rbiLic: "आरबीआई लाइसेंस प्राप्त",
     annualRate: "वार्षिक ब्याज",
@@ -394,7 +455,7 @@ const COPY = {
     confirmNeedAck: "कुल राशि देखने की पुष्टि के लिए ऊपर वाला बॉक्स चुनें।",
     breakdown: "भुगतान का विवरण",
     principal: "आपको मिलने वाली ऋण राशि",
-    interest: "ब्याज (केवल 24 भुगतान महीने)",
+    interest: "ब्याज (केवल भुगतान महीने)",
     bufferInterest: "राहत अवधि का ब्याज",
     proc: "प्रोसेसिंग शुल्क",
     protFee: "सुरक्षा शुल्क (वैकल्पिक)",
@@ -408,14 +469,18 @@ const COPY = {
     coverLine: "सुरक्षा कवर",
     confirmTitle: "आवेदन मिल गया",
     confirmSub:
-      "अगले {n} सेकंड में आप इसे रद्द कर सकते हैं। असली उत्पाद में पैसे भेजने से पहले पूरा एक दिन रद्द करने का समय होता।",
-    undo: "आवेदन रद्द करें",
+      "अगले {n} सेकंड में आप यह आवेदन रद्द कर सकते हैं। सुनिश्चित हों तो प्रतीक्षा छोड़ सकते हैं।",
+    undo: "यह आवेदन रद्द करें",
     undone: "आवेदन रद्द। कोई राशि देय नहीं।",
     doneKeep: "यह आवेदन रखें",
     afterUndo: "कुछ जमा नहीं हुआ। फिर से शुरू करें या बाहर जाएँ।",
     restart: "फिर से शुरू करें",
-    cooling: "रद्द / वापस लेने की खिड़की खुली है",
-    coolingClosed: "वापसी खिड़की खत्म — आप बाहर जा सकते हैं; इस प्रोटोटाइप में पैसे नहीं भेजे गए।",
+    cooling: "रद्द करने की खिड़की खुली है — 30 सेकंड",
+    coolingClosed: "रद्द खिड़की खत्म — आप बाहर जा सकते हैं; इस प्रोटोटाइप में पैसे नहीं भेजे गए।",
+    skipWait: "प्रतीक्षा छोड़ें और आवेदन रखें",
+    waitSkipped: "प्रतीक्षा छोड़ दी। आपका आवेदन रखा गया। इस प्रोटोटाइप में पैसे नहीं भेजे गए।",
+    speaking: "बोल रहे हैं…",
+    voiceUnavailable: "इस डिवाइस पर आवाज़ सीमित हो सकती है — कृपया नीचे लिखा गाइड पढ़ें।",
     trustTitle: "विश्वास सूची",
     trustRbi: "केवल आरबीआई-सत्यापित साझेदार",
     trustExit: "कभी भी रद्द या बाहर",
@@ -436,7 +501,7 @@ const COPY = {
     repayMonth: "भुगतान",
     waitMonth: "इंतज़ार",
     flexBand: "इस महीने आपकी सीमा",
-    years2: "2 वर्ष (24 महीने)",
+    years2: "{n} महीने की वापसी",
     plusBuffer: "+ {n} राहत महीने",
   },
 } as const;
@@ -465,14 +530,14 @@ function monthlyRate(annualPct: number): number {
   return annualPct / 12 / 100;
 }
 
-function standardEmi(principal: number, annualPct: number, months = REPAY_MONTHS): number {
+function standardEmi(principal: number, annualPct: number, months: number): number {
   const r = monthlyRate(annualPct);
   if (r === 0) return Math.round(principal / months);
   const pow = Math.pow(1 + r, months);
   return Math.round((principal * r * pow) / (pow - 1));
 }
 
-function totalInterest(principal: number, emi: number, months = REPAY_MONTHS): number {
+function totalInterest(principal: number, emi: number, months: number): number {
   return emi * months - principal;
 }
 
@@ -488,21 +553,21 @@ function protectionFee(principal: number, coverPct: number): number {
 
 type CalMonth = { kind: "buffer" | "skip" | "repay"; repayIndex: number | null; calIndex: number };
 
-function buildCalendar(bufferMonths: number, mode: BufferMode): CalMonth[] {
+function buildCalendar(repayMonths: number, bufferMonths: number, mode: BufferMode): CalMonth[] {
   if (mode === "before") {
     const wait: CalMonth[] = Array.from({ length: bufferMonths }, (_, i) => ({
       kind: "buffer" as const,
       repayIndex: null,
       calIndex: i,
     }));
-    const repay: CalMonth[] = Array.from({ length: REPAY_MONTHS }, (_, i) => ({
+    const repay: CalMonth[] = Array.from({ length: repayMonths }, (_, i) => ({
       kind: "repay" as const,
       repayIndex: i,
       calIndex: bufferMonths + i,
     }));
     return [...wait, ...repay];
   }
-  const total = REPAY_MONTHS + bufferMonths;
+  const total = repayMonths + bufferMonths;
   const kinds: ("skip" | "repay")[] = Array(total).fill("repay");
   const used = new Set<number>();
   for (let i = 0; i < bufferMonths; i++) {
@@ -531,17 +596,18 @@ function rebalance(
   minEmi: number,
   maxEmi: number,
   target: number,
+  repayMonths: number,
 ): { amounts: number[]; gap: number } {
-  const amounts = Array.from({ length: REPAY_MONTHS }, () => std);
+  const amounts = Array.from({ length: repayMonths }, () => std);
   const locked = Object.keys(overrides)
     .map(Number)
-    .filter((i) => i >= 0 && i < REPAY_MONTHS);
+    .filter((i) => i >= 0 && i < repayMonths);
   let lockedSum = 0;
   for (const i of locked) {
     amounts[i] = Math.min(maxEmi, Math.max(minEmi, Math.round(overrides[i])));
     lockedSum += amounts[i];
   }
-  const unlocked = Array.from({ length: REPAY_MONTHS }, (_, i) => i).filter((i) => !locked.includes(i));
+  const unlocked = Array.from({ length: repayMonths }, (_, i) => i).filter((i) => !locked.includes(i));
   if (unlocked.length === 0) {
     const sum = amounts.reduce((a, b) => a + b, 0);
     return { amounts, gap: target - sum };
@@ -565,18 +631,18 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
   },
   {
     keys: ["buffer", "skip", "wait", "राहत", "बफर", "छोड़"],
-    en: "You get 6 or 12 extra months on top of 24 repayment months. Place them before repayment starts, or as skip months inside the calendar. Interest is not charged on buffer months.",
-    hi: "24 भुगतान महीनों के अलावा 6 या 12 अतिरिक्त महीने मिलते हैं। इन्हें शुरुआत में इंतज़ार के रूप में रखें, या कैलेंडर में छोड़ने योग्य महीने बनाएँ। राहत महीनों पर ब्याज नहीं लगता।",
+    en: "You get 6 or 12 extra buffer months on top of your chosen repayment tenure (6, 12, 24, or 36). Place them before repayment starts, or as skip months inside the calendar. Interest is not charged on buffer months.",
+    hi: "चुनी हुई वापसी अवधि (6, 12, 24, या 36) के अलावा 6 या 12 राहत महीने मिलते हैं। इन्हें शुरुआत में इंतज़ार के रूप में रखें, या कैलेंडर में छोड़ने योग्य महीने बनाएँ। राहत महीनों पर ब्याज नहीं लगता।",
   },
   {
     keys: ["interest", "byaj", "ब्याज", "interest-free", "free buffer"],
-    en: "Interest is calculated only on the 24-month repayment period. The buffer does not add interest. The review screen shows the amount you avoid because the buffer is interest-free.",
-    hi: "ब्याज केवल 24 महीने की वापसी अवधि पर लगता है। राहत अवधि ब्याज नहीं जोड़ती। समीक्षा पृष्ठ पर वह राशि दिखती है जो राहत ब्याज-मुक्त होने से बचती है।",
+    en: "Interest is calculated only on your chosen repayment months. The buffer does not add interest. The review screen shows the amount you avoid because the buffer is interest-free.",
+    hi: "ब्याज केवल चुनी हुई वापसी अवधि पर लगता है। राहत अवधि ब्याज नहीं जोड़ती। समीक्षा पृष्ठ पर वह राशि दिखती है जो राहत ब्याज-मुक्त होने से बचती है।",
   },
   {
     keys: ["emi", "flex", "instal", "install", "60", "140", "income", "किस्त", "लची"],
-    en: "There is no rigid equal EMI. Each repayment month can be between 60% and 140% of the standard instalment, as long as 24 months together repay the total. Raise a good month, lower a lean month.",
-    hi: "कड़ी समान EMI नहीं है। हर भुगतान महीना सामान्य किस्त के 60% से 140% के बीच हो सकता है, बशर्ते 24 महीनों का योग पूरा चुकता हो। अच्छे महीने अधिक, कम कमाई वाले महीने कम।",
+    en: "There is no rigid equal EMI. Each repayment month can be between 60% and 140% of the standard instalment, as long as the full tenure together repays the total. Raise a good month, lower a lean month.",
+    hi: "कड़ी समान EMI नहीं है। हर भुगतान महीना सामान्य किस्त के 60% से 140% के बीच हो सकता है, बशर्ते पूरी अवधि का योग पूरा चुकता हो। अच्छे महीने अधिक, कम कमाई वाले महीने कम।",
   },
   {
     keys: ["insur", "protect", "cover", "illness", "crop fail", "flood", "drought", "सुरक्षा", "बीमा", "फसल", "बीमार"],
@@ -599,9 +665,14 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
     hi: "समीक्षा पृष्ठ पर मूल राशि, 24 महीने का ब्याज, राहत पर ₹0 ब्याज, प्रोसेसिंग शुल्क, और वैकल्पिक सुरक्षा शुल्क है। कुल राशि देखने का बॉक्स चुनने तक पुष्टि बंद रहती है।",
   },
   {
-    keys: ["tenure", "duration", "year", "24", "अवधि", "साल", "महीने"],
-    en: "Actual repayment is 2 years (24 months). Buffer of 6 or 12 months is extra calendar time, not extra interest-bearing tenure.",
-    hi: "वास्तविक वापसी 2 वर्ष (24 महीने) है। 6 या 12 महीने की राहत अतिरिक्त कैलेंडर समय है, अतिरिक्त ब्याज वाली अवधि नहीं।",
+    keys: ["tenure", "duration", "year", "24", "36", "अवधि", "साल", "महीने"],
+    en: "You can choose a repayment tenure of 6, 12, 24, or 36 months depending on your loan amount. Buffer of 6 or 12 months is extra calendar time, not extra interest-bearing tenure.",
+    hi: "ऋण राशि के अनुसार आप 6, 12, 24, या 36 महीने की वापसी अवधि चुन सकते हैं। 6 या 12 महीने की राहत अतिरिक्त कैलेंडर समय है, अतिरिक्त ब्याज वाली अवधि नहीं।",
+  },
+  {
+    keys: ["bank", "nbfc", "partner", "बैंक", "एनबीएफसी", "साझेदार"],
+    en: "You can filter partners by Bank or NBFC. Every listed partner shows an RBI Registered or RBI Licensed badge with rate and processing fee before you choose.",
+    hi: "आप साझेदारों को बैंक या एनबीएफसी से छान सकते हैं। हर सूचीबद्ध साझेदार पर आरबीआई बैज, दर और प्रोसेसिंग शुल्क चुनने से पहले दिखता है।",
   },
 ];
 
@@ -618,68 +689,128 @@ function matchFaq(q: string, lang: Lang): string {
 function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   const all = window.speechSynthesis.getVoices();
-  const want = lang === "hi" ? "hi-IN" : "en-IN";
+  if (!all.length) return null;
+  const want = lang === "hi" ? "hi" : "en";
   return (
-    all.find((v) => v.lang === want) ||
-    all.find((v) => v.lang.toLowerCase().startsWith(lang === "hi" ? "hi" : "en")) ||
+    all.find((v) => v.lang.toLowerCase() === `${want}-in`) ||
+    all.find((v) => v.lang.toLowerCase().startsWith(`${want}-`)) ||
+    all.find((v) => v.lang.toLowerCase().startsWith(want)) ||
+    all.find((v) => v.name.toLowerCase().includes(want === "hi" ? "hindi" : "english")) ||
+    all[0] ||
     null
   );
 }
 
-function speak(text: string, lang: Lang) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang === "hi" ? "hi-IN" : "en-IN";
-  u.rate = 0.95;
-  const v = pickVoice(lang);
-  if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
+function speak(
+  text: string,
+  lang: Lang,
+  handlers?: { onStart?: () => void; onEnd?: () => void; onError?: () => void },
+): boolean {
+  if (typeof window === "undefined" || !window.speechSynthesis || !text.trim()) {
+    handlers?.onError?.();
+    return false;
+  }
+  try {
+    window.speechSynthesis.cancel();
+    // Chrome sometimes stays paused after cancel — nudge it.
+    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang === "hi" ? "hi-IN" : "en-IN";
+    u.rate = 0.92;
+    u.pitch = 1;
+    u.volume = 1;
+    const v = pickVoice(lang);
+    if (v) u.voice = v;
+    u.onstart = () => handlers?.onStart?.();
+    u.onend = () => handlers?.onEnd?.();
+    u.onerror = () => handlers?.onError?.();
+    // Small delay helps Chrome after cancel() / first user gesture.
+    window.setTimeout(() => {
+      try {
+        window.speechSynthesis.speak(u);
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      } catch {
+        handlers?.onError?.();
+      }
+    }, 60);
+    return true;
+  } catch {
+    handlers?.onError?.();
+    return false;
+  }
 }
 
 export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const [lang, setLang] = useState<Lang | null>(null);
   const [step, setStep] = useState<Step>("language");
   const [muted, setMuted] = useState(false);
-  const [subtitle, setSubtitle] = useState("");
+  const [subtitle, setSubtitle] = useState(
+    "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.",
+  );
+  const [speaking, setSpeaking] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(true);
   const [amount, setAmount] = useState(50_000);
+  const [repayMonths, setRepayMonths] = useState<TenureMonths>(24);
   const [purpose, setPurpose] = useState<PurposeId>("crop");
   const [income, setIncome] = useState<IncomeId>("seasonal");
   const [bufferMonths, setBufferMonths] = useState<6 | 12>(6);
   const [bufferMode, setBufferMode] = useState<BufferMode>("before");
   const [lenderId, setLenderId] = useState<string | null>(null);
+  const [lenderFilter, setLenderFilter] = useState<"all" | "bank" | "nbfc">("all");
   const [wantInsurance, setWantInsurance] = useState(false);
   const [coverPct, setCoverPct] = useState(25);
   const [overrides, setOverrides] = useState<Record<number, number>>({});
   const [selectedRepay, setSelectedRepay] = useState(0);
   const [ack, setAck] = useState(false);
   const [undone, setUndone] = useState(false);
+  const [waitSkipped, setWaitSkipped] = useState(false);
   const [undoLeft, setUndoLeft] = useState(UNDO_SECONDS);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const msgId = useRef(1);
-  const voicesReady = useRef(false);
+  const audioUnlocked = useRef(false);
   const L = (lang ?? "en") as Lang;
 
+  const unlockedTenures = useMemo(() => availableTenures(amount), [amount]);
   const lender = LENDERS.find((x) => x.id === lenderId) ?? null;
   const rate = lender?.rate ?? LENDERS[0].rate;
-  const emi = standardEmi(amount, rate);
+  const emi = standardEmi(amount, rate, repayMonths);
   const minEmi = Math.round(emi * MIN_EMI_RATIO);
   const maxEmi = Math.round(emi * MAX_EMI_RATIO);
-  const interest24 = totalInterest(amount, emi);
+  const interestTotal = totalInterest(amount, emi, repayMonths);
   const bufferIfCharged = bufferInterestIfCharged(amount, rate, bufferMonths);
   const proc = lender?.processingFee ?? 0;
   const prot = wantInsurance ? protectionFee(amount, coverPct) : 0;
-  const targetPay = emi * REPAY_MONTHS;
+  const targetPay = emi * repayMonths;
   const { amounts, gap } = useMemo(
-    () => rebalance(overrides, emi, minEmi, maxEmi, targetPay),
-    [overrides, emi, minEmi, maxEmi, targetPay],
+    () => rebalance(overrides, emi, minEmi, maxEmi, targetPay, repayMonths),
+    [overrides, emi, minEmi, maxEmi, targetPay, repayMonths],
   );
-  const calendar = useMemo(() => buildCalendar(bufferMonths, bufferMode), [bufferMonths, bufferMode]);
-  const grand = amount + interest24 + proc + prot;
+  const calendar = useMemo(
+    () => buildCalendar(repayMonths, bufferMonths, bufferMode),
+    [repayMonths, bufferMonths, bufferMode],
+  );
+  const grand = amount + interestTotal + proc + prot;
+  const filteredLenders = useMemo(
+    () =>
+      LENDERS.filter((ln) => {
+        if (lenderFilter === "all") return true;
+        return ln.kind === lenderFilter;
+      }),
+    [lenderFilter],
+  );
   const reached = (s: Step) => STEPS.indexOf(step) >= STEPS.indexOf(s);
+
+  // Keep tenure valid when amount changes.
+  useEffect(() => {
+    if (!unlockedTenures.includes(repayMonths)) {
+      setRepayMonths(unlockedTenures[unlockedTenures.length - 1]);
+      setOverrides({});
+      setSelectedRepay(0);
+    }
+  }, [unlockedTenures, repayMonths]);
 
   const trust = [
     { id: "rbi", label: t(L, "trustRbi"), on: true },
@@ -705,13 +836,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     }
     if (step === "structure") {
       return g === "hi"
-        ? `वापसी 24 महीने की है। ${bufferMonths} महीने की राहत पर ब्याज शून्य है। 24 महीने का ब्याज ${inr(interest24)} है। अगर राहत पर ब्याज लगता तो अतिरिक्त ${inr(bufferIfCharged)} जुड़ता — वह नहीं लगता। किस्त ${inr(emi)} के 60 से 140 प्रतिशत के बीच लचीली है।`
-        : `You repay for 24 months. Your ${bufferMonths}-month buffer has zero interest. Interest on the 24 months is ${inr(interest24)}. If the buffer were charged, an extra ${inr(bufferIfCharged)} would be added — it is not. Instalments can move between 60 and 140 percent of ${inr(emi)}.`;
+        ? `वापसी ${repayMonths} महीने की है। ${bufferMonths} महीने की राहत पर ब्याज शून्य है। ब्याज ${inr(interestTotal)} है। अगर राहत पर ब्याज लगता तो अतिरिक्त ${inr(bufferIfCharged)} जुड़ता — वह नहीं लगता। किस्त ${inr(emi)} के 60 से 140 प्रतिशत के बीच लचीली है।`
+        : `You repay for ${repayMonths} months. Your ${bufferMonths}-month buffer has zero interest. Interest is ${inr(interestTotal)}. If the buffer were charged, an extra ${inr(bufferIfCharged)} would be added — it is not. Instalments can move between 60 and 140 percent of ${inr(emi)}.`;
     }
     if (step === "lender") {
       return g === "hi"
-        ? "आरबीआई पंजीकृत या लाइसेंस प्राप्त साझेदार चुनें। हर कार्ड पर दर और प्रोसेसिंग शुल्क पहले से लिखा है।"
-        : "Choose an RBI registered or licensed partner. Each card lists the rate and processing fee before you select.";
+        ? "बैंक या एनबीएफसी साझेदार चुनें। हर कार्ड पर आरबीआई बैज, दर और प्रोसेसिंग शुल्क पहले से लिखा है।"
+        : "Choose a Bank or NBFC partner. Each card lists the RBI badge, rate, and processing fee before you select.";
     }
     if (step === "insurance") {
       return g === "hi"
@@ -724,28 +855,34 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     }
     if (step === "review") {
       return g === "hi"
-        ? `आपको ${inr(amount)} मिलते हैं। 24 महीने का ब्याज ${inr(interest24)}। राहत पर ब्याज शून्य। प्रोसेसिंग ${inr(proc)}। सुरक्षा शुल्क ${wantInsurance ? inr(prot) : "शून्य"}। कुल चुकाने योग्य ${inr(grand)}। पुष्टि से पहले बॉक्स चुनें।`
-        : `You receive ${inr(amount)}. Interest for 24 months is ${inr(interest24)}. Buffer interest is zero. Processing fee ${inr(proc)}. Protection fee ${wantInsurance ? inr(prot) : "zero"}. Total to repay ${inr(grand)}. Tick the box before you confirm.`;
+        ? `आपको ${inr(amount)} मिलते हैं। ${repayMonths} महीने का ब्याज ${inr(interestTotal)}। राहत पर ब्याज शून्य। प्रोसेसिंग ${inr(proc)}। सुरक्षा शुल्क ${wantInsurance ? inr(prot) : "शून्य"}। कुल चुकाने योग्य ${inr(grand)}। पुष्टि से पहले बॉक्स चुनें।`
+        : `You receive ${inr(amount)}. Interest for ${repayMonths} months is ${inr(interestTotal)}. Buffer interest is zero. Processing fee ${inr(proc)}. Protection fee ${wantInsurance ? inr(prot) : "zero"}. Total to repay ${inr(grand)}. Tick the box before you confirm.`;
     }
     if (undone) {
       return g === "hi"
         ? "आवेदन रद्द हो गया। कोई राशि देय नहीं।"
         : "The application was cancelled. Nothing is due.";
     }
+    if (waitSkipped) {
+      return g === "hi"
+        ? "प्रतीक्षा छोड़ दी। आवेदन रखा गया। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
+        : "Wait skipped. Application kept. No money is sent in this prototype.";
+    }
     if (undoLeft <= 0) {
       return g === "hi"
-        ? "आवेदन मिल गया। रद्द करने की छोटी खिड़की खत्म हो गई। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
-        : "Application received. The short undo window has ended. No money is sent in this prototype.";
+        ? "आवेदन मिल गया। रद्द करने की 30 सेकंड की खिड़की खत्म हो गई। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
+        : "Application received. The 30-second cancel window has ended. No money is sent in this prototype.";
     }
     return g === "hi"
-      ? `आवेदन मिल गया। ${undoLeft} सेकंड में रद्द कर सकते हैं। इस प्रोटोटाइप में पैसे नहीं भेजे गए।`
-      : `Application received. You can undo for ${undoLeft} seconds. No money is sent in this prototype.`;
+      ? `आवेदन मिल गया। आप ${undoLeft} सेकंड में रद्द कर सकते हैं, या प्रतीक्षा छोड़ सकते हैं।`
+      : `Application received. You can cancel for ${undoLeft} seconds, or skip the wait.`;
   }, [
     lang,
     step,
     amount,
+    repayMonths,
     bufferMonths,
-    interest24,
+    interestTotal,
     bufferIfCharged,
     emi,
     wantInsurance,
@@ -754,63 +891,90 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     proc,
     grand,
     undone,
+    waitSkipped,
     undoLeft,
   ]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (typeof window === "undefined") return;
+    if (!window.speechSynthesis) {
+      setVoiceSupported(false);
+      return;
+    }
     const load = () => {
-      voicesReady.current = true;
+      window.speechSynthesis.getVoices();
     };
-    window.speechSynthesis.addEventListener("voiceschanged", load);
     load();
+    window.speechSynthesis.addEventListener("voiceschanged", load);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
 
   const playVoice = useCallback(
     (force = false) => {
       const text = voiceText();
-      setSubtitle(text);
-      if (!force && (muted || !lang) && step !== "language") {
-        if (muted) return;
+      setSubtitle(text || t(L, "voiceUnavailable"));
+      audioUnlocked.current = true;
+      if (muted && !force) {
+        setSpeaking(false);
+        return;
       }
-      if (muted && !force) return;
-      if (step === "language" && muted && !force) return;
-      speak(text, (lang ?? "en") as Lang);
+      if (!window.speechSynthesis) {
+        setVoiceSupported(false);
+        setSpeaking(false);
+        return;
+      }
+      const ok = speak(text, (lang ?? "en") as Lang, {
+        onStart: () => {
+          setSpeaking(true);
+          setVoiceSupported(true);
+        },
+        onEnd: () => setSpeaking(false),
+        onError: () => {
+          setSpeaking(false);
+          setVoiceSupported(false);
+        },
+      });
+      if (!ok) {
+        setSpeaking(false);
+        setVoiceSupported(false);
+      }
     },
-    [voiceText, muted, lang, step],
+    [voiceText, muted, lang, L],
   );
 
+  // Keep subtitle always in sync with the current screen text.
   useEffect(() => {
-    const text = voiceText();
-    setSubtitle(text);
-    if (muted) return;
-    const tmr = window.setTimeout(() => speak(text, (lang ?? "en") as Lang), 250);
+    setSubtitle(voiceText());
+  }, [voiceText]);
+
+  // Auto-speak when the step/language changes after the user has unlocked audio.
+  useEffect(() => {
+    if (muted) {
+      setSpeaking(false);
+      return;
+    }
+    if (!audioUnlocked.current && step === "language") return;
+    if (!audioUnlocked.current) return;
+    const tmr = window.setTimeout(() => playVoice(false), 180);
     return () => {
       clearTimeout(tmr);
-      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     };
-    // Speak on step/lang/mute changes, not on every rupee tweak.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, lang, muted, undone]);
+  }, [step, lang, muted, undone, waitSkipped]);
 
   useEffect(() => {
-    if (step !== "confirm" || undone) return;
+    if (step !== "confirm" || undone || waitSkipped) return;
     setUndoLeft(UNDO_SECONDS);
     const id = window.setInterval(() => {
       setUndoLeft((s) => (s <= 1 ? 0 : s - 1));
     }, 1000);
     return () => clearInterval(id);
-  }, [step, undone]);
+  }, [step, undone, waitSkipped]);
 
   useEffect(() => {
     if (!lang) return;
     setMsgs([{ id: 0, role: "bot", text: t(lang, "chatHello") }]);
   }, [lang]);
-
-  useEffect(() => {
-    setSubtitle(voiceText());
-  }, [voiceText]);
 
   useEffect(() => {
     document.documentElement.lang = L === "hi" ? "hi" : "en";
@@ -825,7 +989,34 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     const i = STEPS.indexOf(step);
     if (step === "language" && !lang) return;
     if (step === "lender" && !lenderId) return;
+    audioUnlocked.current = true;
     if (i < STEPS.length - 1) go(STEPS[i + 1]);
+  }
+
+  function chooseLanguage(next: Lang) {
+    audioUnlocked.current = true;
+    setLang(next);
+    // Speak immediately on the user gesture so browsers allow TTS.
+    window.setTimeout(() => {
+      const text =
+        next === "hi"
+          ? "भरोसालोन में आपका स्वागत है। कृपया अंग्रेज़ी या हिन्दी चुनें। आवाज़ी गाइड हर बात को स्क्रीन पर भी लिखेगी।"
+          : "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.";
+      setSubtitle(text);
+      if (!muted) {
+        speak(text, next, {
+          onStart: () => {
+            setSpeaking(true);
+            setVoiceSupported(true);
+          },
+          onEnd: () => setSpeaking(false),
+          onError: () => {
+            setSpeaking(false);
+            setVoiceSupported(false);
+          },
+        });
+      }
+    }, 40);
   }
 
   function prevStep() {
@@ -854,10 +1045,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   function resetFlow() {
     setStep("language");
     setUndone(false);
+    setWaitSkipped(false);
     setAck(false);
     setWantInsurance(false);
     setOverrides({});
     setLenderId(null);
+    setLenderFilter("all");
+    setUndoLeft(UNDO_SECONDS);
   }
 
   const canNext =
@@ -905,7 +1099,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                     className={`inline-flex min-h-11 min-w-11 items-center gap-1 rounded-full px-3 text-sm font-semibold ${
                       L === x ? "bg-orange-700 text-white" : "text-stone-700"
                     }`}
-                    onClick={() => setLang(x)}
+                    onClick={() => chooseLanguage(x)}
                     aria-pressed={L === x}
                   >
                     <Languages className="h-4 w-4" aria-hidden />
@@ -919,7 +1113,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               onClick={() => {
                 setMuted((m) => {
                   const next = !m;
-                  if (next) window.speechSynthesis?.cancel();
+                  if (next) {
+                    window.speechSynthesis?.cancel();
+                    setSpeaking(false);
+                  } else {
+                    audioUnlocked.current = true;
+                    window.setTimeout(() => playVoice(true), 40);
+                  }
                   return next;
                 });
               }}
@@ -931,6 +1131,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               label={t(L, "replay")}
               onClick={() => {
                 setMuted(false);
+                audioUnlocked.current = true;
                 playVoice(true);
               }}
             >
@@ -1010,14 +1211,14 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   active={lang === "en"}
                   title="English"
                   sub="Voice: en-IN"
-                  onClick={() => setLang("en")}
+                  onClick={() => chooseLanguage("en")}
                   testId="lang-en"
                 />
                 <LangCard
                   active={lang === "hi"}
                   title="हिन्दी"
                   sub="आवाज़: hi-IN"
-                  onClick={() => setLang("hi")}
+                  onClick={() => chooseLanguage("hi")}
                   testId="lang-hi"
                 />
               </div>
@@ -1108,6 +1309,43 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "structureTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "structureSub")}</p>
 
+              <div className="mt-6">
+                <p className="font-semibold">{t(L, "tenureLen")}</p>
+                <p className="mt-1 text-sm text-stone-500">{t(L, "tenureHint")}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {TENURE_OPTIONS.map((n) => {
+                    const unlocked = unlockedTenures.includes(n);
+                    const hint = tenureUnlockHint(n, L);
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        disabled={!unlocked}
+                        title={!unlocked && hint ? hint : undefined}
+                        onClick={() => {
+                          if (!unlocked) return;
+                          setRepayMonths(n);
+                          setOverrides({});
+                          setSelectedRepay(0);
+                        }}
+                        className={`min-h-14 rounded-2xl px-2 py-2 font-semibold ${
+                          repayMonths === n
+                            ? "bg-orange-700 text-white"
+                            : unlocked
+                              ? "bg-white text-stone-800 ring-1 ring-stone-200"
+                              : "cursor-not-allowed bg-stone-100 text-stone-400 ring-1 ring-stone-200"
+                        }`}
+                      >
+                        <span className="block">{t(L, "monthsN", { n })}</span>
+                        {!unlocked && hint && (
+                          <span className="mt-1 block text-[10px] font-normal leading-tight">{hint}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="font-semibold">{t(L, "bufferLen")}</p>
@@ -1127,10 +1365,10 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   </div>
                 </div>
                 <div className="rounded-2xl bg-green-50 p-4 text-green-950 ring-1 ring-green-200">
-                  <p className="text-sm font-semibold">{t(L, "repayCount")}</p>
-                  <p className="text-sm">{t(L, "calendarSpan", { n: 24 + bufferMonths })}</p>
+                  <p className="text-sm font-semibold">{t(L, "repayCount", { n: repayMonths })}</p>
+                  <p className="text-sm">{t(L, "calendarSpan", { n: repayMonths + bufferMonths })}</p>
                   <p className="mt-1 text-sm">
-                    {t(L, "years2")} {t(L, "plusBuffer", { n: bufferMonths })}
+                    {t(L, "years2", { n: repayMonths })} {t(L, "plusBuffer", { n: bufferMonths })}
                   </p>
                 </div>
               </div>
@@ -1168,7 +1406,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                 <p className="mt-2 text-sm leading-relaxed text-stone-600">
                   {t(L, "ratePreview", { rate: rate.toFixed(1) })}
                 </p>
-                <Line k={t(L, "interestOn24")} v={inr(interest24)} />
+                <Line k={t(L, "interestOn24")} v={inr(interestTotal)} />
                 <Line k={t(L, "interestOnBuffer")} v={inr(0)} strong />
                 <div className="mt-3 rounded-xl bg-amber-50 p-3">
                   <p className="text-sm font-semibold text-stone-800">
@@ -1177,7 +1415,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-stone-600">{t(L, "interestSavedHint")}</p>
                   <p className="mt-2 text-sm text-stone-500 line-through">
-                    {inr(interest24 + bufferIfCharged)}
+                    {inr(interestTotal + bufferIfCharged)}
                   </p>
                 </div>
               </div>
@@ -1241,9 +1479,31 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
             <Card>
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "lenderTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "lenderSub")}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(
+                  [
+                    ["all", "filterAll"],
+                    ["bank", "filterBank"],
+                    ["nbfc", "filterNbfc"],
+                  ] as const
+                ).map(([id, key]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setLenderFilter(id)}
+                    className={`min-h-11 rounded-full px-4 text-sm font-semibold ${
+                      lenderFilter === id
+                        ? "bg-green-800 text-white"
+                        : "bg-white text-stone-800 ring-1 ring-stone-200"
+                    }`}
+                  >
+                    {t(L, key)}
+                  </button>
+                ))}
+              </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {LENDERS.map((ln) => {
-                  const e = standardEmi(amount, ln.rate);
+                {filteredLenders.map((ln) => {
+                  const e = standardEmi(amount, ln.rate, repayMonths);
                   const active = lenderId === ln.id;
                   return (
                     <button
@@ -1260,8 +1520,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className="text-lg font-bold">{ln.name}</p>
-                          <p className="text-sm capitalize text-stone-500">
-                            {ln.kind === "nbfc" ? "NBFC" : L === "hi" ? "बैंक" : "Bank"}
+                          <p className="text-sm font-semibold text-stone-600">
+                            {ln.kind === "nbfc" ? t(L, "kindNbfc") : t(L, "kindBank")}
                           </p>
                         </div>
                         <RbiBadge lang={L} kind={ln.badge} />
@@ -1380,7 +1640,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   </div>
                   <Row k={t(L, "purposeLine")} v={t(L, purposeKey(purpose))} />
                   <Row k={t(L, "incomeLine")} v={t(L, incomeKey(income))} />
-                  <Row k={t(L, "tenure")} v={t(L, "years2")} />
+                  <Row k={t(L, "tenure")} v={t(L, "years2", { n: repayMonths })} />
                   <Row
                     k={t(L, "bufferLine")}
                     v={`${bufferMonths} · ${bufferMode === "before" ? t(L, "modeBefore") : t(L, "modeDist")}`}
@@ -1393,7 +1653,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                 <div className="rounded-2xl bg-white p-4 ring-1 ring-stone-200">
                   <p className="font-bold">{t(L, "breakdown")}</p>
                   <Line k={t(L, "principal")} v={inr(amount)} />
-                  <Line k={t(L, "interest")} v={inr(interest24)} />
+                  <Line k={t(L, "interest")} v={inr(interestTotal)} />
                   <Line k={t(L, "bufferInterest")} v={inr(0)} strong />
                   <Line k={t(L, "proc")} v={proc ? inr(proc) : t(L, "none")} />
                   <Line
@@ -1435,10 +1695,15 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               <h1 className="mt-4 text-2xl font-bold sm:text-3xl" data-testid="confirm-title">
                 {undone ? t(L, "undone") : t(L, "confirmTitle")}
               </h1>
-              {!undone && (
+              {!undone && !waitSkipped && (
                 <p className="mt-2 text-base leading-relaxed text-stone-600">
                   {undoLeft > 0 ? t(L, "confirmSub", { n: undoLeft }) : t(L, "coolingClosed")}
                 </p>
+              )}
+              {waitSkipped && !undone && (
+                <div className="mt-4 rounded-2xl bg-green-50 p-4 ring-1 ring-green-200">
+                  <p className="text-base font-semibold text-green-900">{t(L, "waitSkipped")}</p>
+                </div>
               )}
               {undone && (
                 <div className="mt-4 rounded-2xl bg-stone-100 p-4 ring-1 ring-stone-300">
@@ -1447,7 +1712,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                 </div>
               )}
 
-              {!undone && (
+              {!undone && !waitSkipped && (
                 <div
                   className={`mt-6 rounded-2xl p-4 ${
                     undoLeft > 0 ? "bg-green-50 ring-1 ring-green-200" : "bg-stone-100"
@@ -1462,8 +1727,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                 </div>
               )}
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                {!undone && undoLeft > 0 && (
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {!undone && !waitSkipped && undoLeft > 0 && (
                   <button
                     type="button"
                     data-testid="bharosa-undo"
@@ -1471,6 +1736,19 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                     className="min-h-12 flex-1 rounded-2xl bg-white px-4 font-semibold text-stone-800 ring-1 ring-stone-300"
                   >
                     {t(L, "undo")}
+                  </button>
+                )}
+                {!undone && !waitSkipped && undoLeft > 0 && (
+                  <button
+                    type="button"
+                    data-testid="bharosa-skip-wait"
+                    onClick={() => {
+                      setWaitSkipped(true);
+                      setUndoLeft(0);
+                    }}
+                    className="min-h-12 flex-1 rounded-2xl bg-green-800 px-4 font-semibold text-white"
+                  >
+                    {t(L, "skipWait")}
                   </button>
                 )}
                 <button
@@ -1521,21 +1799,49 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
       </div>
 
       <div
-        className="sticky bottom-0 z-20 border-t border-amber-200 bg-amber-100/95 px-4 py-3 backdrop-blur sm:px-6"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-orange-300 bg-amber-50 px-4 py-3 shadow-[0_-8px_24px_rgba(124,45,18,0.12)] sm:px-6"
         aria-live="polite"
+        data-testid="bharosa-subtitle"
       >
         <div className="mx-auto flex max-w-6xl items-start gap-3">
           <span className="mt-0.5 shrink-0 text-orange-800">
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </span>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-              {t(L, "subtitleLabel")}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                {t(L, "subtitleLabel")}
+              </p>
+              {speaking && !muted && (
+                <span className="rounded-full bg-orange-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                  {t(L, "speaking")}
+                </span>
+              )}
+              {!voiceSupported && (
+                <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px] font-semibold text-stone-700">
+                  {t(L, "voiceUnavailable")}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 min-h-[1.5rem] text-base font-medium leading-relaxed text-stone-900">
+              {subtitle || t(L, "voiceUnavailable")}
             </p>
-            <p className="text-base leading-relaxed text-stone-800">{subtitle}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setMuted(false);
+              audioUnlocked.current = true;
+              playVoice(true);
+            }}
+            className="min-h-11 shrink-0 rounded-full bg-orange-700 px-3 text-sm font-semibold text-white"
+          >
+            {t(L, "replay")}
+          </button>
         </div>
       </div>
+      {/* Spacer so content is not hidden behind the fixed subtitle bar */}
+      <div className="h-28" aria-hidden />
 
       <ChatWidget
         lang={L}
@@ -1826,7 +2132,7 @@ function ChatWidget({
   }, [msgs, busy, open]);
 
   return (
-    <div className="fixed bottom-24 right-4 z-40 sm:bottom-28 sm:right-6">
+    <div className="fixed bottom-32 right-4 z-50 sm:bottom-36 sm:right-6">
       {open && (
         <div className="mb-3 flex h-[min(70vh,480px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-card">
           <div className="flex items-center justify-between bg-orange-700 px-4 py-3 text-white">
