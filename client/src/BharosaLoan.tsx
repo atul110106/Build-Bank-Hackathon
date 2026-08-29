@@ -1022,12 +1022,19 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
 
 function matchFaq(q: string, lang: Lang): string {
   const lower = q.toLowerCase();
+  let best: { row: (typeof FAQS)[number]; len: number } | null = null;
   for (const row of FAQS) {
-    if (row.keys.some((k) => lower.includes(k.toLowerCase()))) return row[lang];
+    for (const k of row.keys) {
+      const key = k.toLowerCase();
+      if (lower.includes(key) && (!best || key.length > best.len)) {
+        best = { row, len: key.length };
+      }
+    }
   }
+  if (best) return best.row[lang];
   return lang === "hi"
-    ? "मैं राहत अवधि, किस्त, छूटी किस्त, सुरक्षा, शुल्क, या आरबीआई बैज के बारे में बता सकता/सकती हूँ। थोड़े अलग शब्द आज़माएँ।"
-    : "I can explain the buffer, instalments, missed payments, protection, fees, or RBI badges. Try a few different words.";
+    ? "मैं राहत अवधि, किस्त, ट्रस्ट स्कोर, छूटी किस्त, सुरक्षा, शुल्क, या आरबीआई बैज के बारे में बता सकता/सकती हूँ। थोड़े अलग शब्द आज़माएँ।"
+    : "I can explain the buffer, instalments, Trust Score, missed payments, protection, fees, or RBI badges. Try a few different words.";
 }
 
 function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
