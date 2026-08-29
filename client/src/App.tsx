@@ -7,10 +7,12 @@ import {
   formatCurrency,
   formatDate,
 } from "./api";
+import { BharosaLoan } from "./BharosaLoan";
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [booted, setBooted] = useState(false);
+  const [loanOpen, setLoanOpen] = useState(false);
 
   useEffect(() => {
     // If we already have a token, try to load accounts to confirm the session.
@@ -27,14 +29,30 @@ export function App() {
 
   if (!booted) return null;
 
-  if (!user) {
-    return <Login onLogin={setUser} />;
+  if (loanOpen) {
+    return <BharosaLoan onExit={() => setLoanOpen(false)} />;
   }
 
-  return <Dashboard user={user} onLogout={() => { api.logout(); setUser(null); }} />;
+  if (!user) {
+    return <Login onLogin={setUser} onOpenLoan={() => setLoanOpen(true)} />;
+  }
+
+  return (
+    <Dashboard
+      user={user}
+      onLogout={() => { api.logout(); setUser(null); }}
+      onOpenLoan={() => setLoanOpen(true)}
+    />
+  );
 }
 
-function Login({ onLogin }: { onLogin: (u: User) => void }) {
+function Login({
+  onLogin,
+  onOpenLoan,
+}: {
+  onLogin: (u: User) => void;
+  onOpenLoan: () => void;
+}) {
   const [email, setEmail] = useState("demo@securebank.test");
   const [password, setPassword] = useState("hackathon");
   const [error, setError] = useState<string | null>(null);
@@ -78,12 +96,30 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           </button>
         </form>
         <p className="hint">Demo credentials are pre-filled for you.</p>
+        <button
+          className="btn block"
+          type="button"
+          onClick={onOpenLoan}
+          data-testid="open-bharosa-loan"
+          style={{ marginTop: 12 }}
+        >
+          Explore BharosaLoan
+        </button>
+        <p className="hint">Flexible loans for irregular income — no sign-in required.</p>
       </div>
     </div>
   );
 }
 
-function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
+function Dashboard({
+  user,
+  onLogout,
+  onOpenLoan,
+}: {
+  user: User;
+  onLogout: () => void;
+  onOpenLoan: () => void;
+}) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -135,6 +171,9 @@ function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
           <div className="nav-item active">Accounts</div>
           <div className="nav-item">Payments</div>
           <div className="nav-item">Cards</div>
+          <button className="nav-item" type="button" onClick={onOpenLoan} data-testid="nav-bharosa-loan">
+            BharosaLoan
+          </button>
           <div className="nav-item">Settings</div>
         </nav>
         <div className="sidebar-footer">
@@ -158,6 +197,16 @@ function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
         {banner && (
           <div className={`banner ${banner.kind}`} role="status">{banner.text}</div>
         )}
+
+        <button
+          type="button"
+          className="banner ok"
+          onClick={onOpenLoan}
+          data-testid="dash-bharosa-loan"
+          style={{ cursor: "pointer", textAlign: "left", width: "100%", border: "none" }}
+        >
+          BharosaLoan — flexible repayment for irregular income. Open the prototype.
+        </button>
 
         <section className="cards">
           {accounts.map((a) => (

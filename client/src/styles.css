@@ -1,3 +1,5 @@
+@tailwind utilities;
+
 :root {
   --bg: #0b1020;
   --panel: #141b31;
@@ -110,8 +112,10 @@ label {
   color: var(--muted);
   font-weight: 600;
 }
-input,
-select {
+.app input,
+.app select,
+.auth-shell input,
+.auth-shell select {
   background: var(--panel-2);
   border: 1px solid var(--border);
   color: var(--ink);
@@ -120,11 +124,14 @@ select {
   font-size: 15px;
   outline: none;
 }
-input:focus,
-select:focus {
+.app input:focus,
+.app select:focus,
+.auth-shell input:focus,
+.auth-shell select:focus {
   border-color: var(--brand);
 }
-input:disabled {
+.app input:disabled,
+.auth-shell input:disabled {
   color: var(--muted);
 }
 
@@ -183,6 +190,12 @@ input:disabled {
   color: var(--muted);
   font-weight: 600;
   cursor: pointer;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font-size: inherit;
+  font-family: inherit;
 }
 .nav-item:hover {
   background: var(--panel-2);
