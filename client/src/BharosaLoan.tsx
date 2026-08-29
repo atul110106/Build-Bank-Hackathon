@@ -14,26 +14,34 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
+  Gem,
+  Handshake,
   HeartHandshake,
   IndianRupee,
   Languages,
+  Landmark,
   Leaf,
   MessageCircle,
   RotateCcw,
   Send,
+  Smartphone,
   Sprout,
+  Star,
   Store,
   Undo2,
+  Users,
   Volume2,
   VolumeX,
   Wallet,
   X,
+  Zap,
 } from "lucide-react";
 
 type Lang = "en" | "hi";
 type Step =
   | "language"
   | "basics"
+  | "trust"
   | "structure"
   | "lender"
   | "insurance"
@@ -42,6 +50,15 @@ type Step =
 type BufferMode = "before" | "distributed";
 type PurposeId = "crop" | "vehicle" | "capital" | "livestock" | "shop";
 type IncomeId = "daily" | "gig" | "seasonal" | "mixed";
+type TrustSignalId =
+  | "bank"
+  | "collateral"
+  | "upi"
+  | "utility"
+  | "gig"
+  | "mandi"
+  | "shg"
+  | "vouch";
 
 type Lender = {
   id: string;
@@ -59,12 +76,111 @@ type ChatMsg = { id: number; role: "user" | "bot"; text: string };
 const STEPS: Step[] = [
   "language",
   "basics",
+  "trust",
   "structure",
   "lender",
   "insurance",
   "review",
   "confirm",
 ];
+
+const TRUST_SIGNALS: {
+  id: TrustSignalId;
+  weight: number;
+  icon: typeof Landmark;
+  titleEn: string;
+  titleHi: string;
+  descEn: string;
+  descHi: string;
+  optionalNoteEn?: string;
+  optionalNoteHi?: string;
+}[] = [
+  {
+    id: "bank",
+    weight: 18,
+    icon: Landmark,
+    titleEn: "Bank statement / formal history",
+    titleHi: "बैंक स्टेटमेंट / औपचारिक इतिहास",
+    descEn: "Optional. Helpful if you have it — not required.",
+    descHi: "वैकल्पिक। हो तो मददगार — ज़रूरी नहीं।",
+    optionalNoteEn: "Traditional signal — many people skip this.",
+    optionalNoteHi: "पारंपरिक संकेत — कई लोग इसे छोड़ देते हैं।",
+  },
+  {
+    id: "collateral",
+    weight: 14,
+    icon: Gem,
+    titleEn: "Collateral offered",
+    titleHi: "जमानत / संपत्ति की पेशकश",
+    descEn: "Optional — e.g. two-wheeler or gold. Add a short note if yes.",
+    descHi: "वैकल्पिक — जैसे दोपहिया या सोना। हाँ हो तो छोटा नोट लिखें।",
+  },
+  {
+    id: "upi",
+    weight: 14,
+    icon: Smartphone,
+    titleEn: "UPI / digital payment consistency",
+    titleHi: "UPI / डिजिटल भुगतान की नियमितता",
+    descEn: "Small digital payments arriving regularly in recent months.",
+    descHi: "हाल के महीनों में छोटे डिजिटल भुगतान नियमित रूप से।",
+  },
+  {
+    id: "utility",
+    weight: 12,
+    icon: Zap,
+    titleEn: "Utility bill payment history",
+    titleHi: "बिजली / मोबाइल बिल भुगतान इतिहास",
+    descEn: "On-time electricity or mobile recharge patterns.",
+    descHi: "समय पर बिजली या मोबाइल रिचार्ज का पैटर्न।",
+  },
+  {
+    id: "gig",
+    weight: 12,
+    icon: Star,
+    titleEn: "Gig platform tenure & rating",
+    titleHi: "गिग प्लेटफ़ॉर्म अवधि और रेटिंग",
+    descEn: "For gig workers — months active and your rating.",
+    descHi: "गिग काम के लिए — सक्रिय महीने और आपकी रेटिंग।",
+  },
+  {
+    id: "mandi",
+    weight: 12,
+    icon: Store,
+    titleEn: "Mandi / market sales record",
+    titleHi: "मंडी / बाज़ार बिक्री रिकॉर्ड",
+    descEn: "For farmers — regular crop sales through a registered market.",
+    descHi: "किसानों के लिए — पंजीकृत मंडी में नियमित फसल बिक्री।",
+  },
+  {
+    id: "shg",
+    weight: 10,
+    icon: Users,
+    titleEn: "SHG / community savings group",
+    titleHi: "एसएचजी / सामुदायिक बचत समूह",
+    descEn: "Consistent contributions in a self-help or savings group.",
+    descHi: "स्वयं सहायता या बचत समूह में नियमित योगदान।",
+  },
+  {
+    id: "vouch",
+    weight: 8,
+    icon: Handshake,
+    titleEn: "Community vouching",
+    titleHi: "समुदाय की सिफ़ारिश",
+    descEn: "A known contact who already repaid a BharosaLoan is willing to vouch.",
+    descHi: "कोई परिचित जिसने पहले भरोसालोन चुकाया हो, सिफ़ारिश करने को तैयार है।",
+  },
+];
+
+function trustRateDiscount(score: number): number {
+  if (score >= 80) return 0.5;
+  if (score >= 60) return 0.3;
+  if (score >= 40) return 0.15;
+  return 0;
+}
+
+function trustSkipsExtraVerification(score: number): boolean {
+  return score >= 70;
+}
 
 const TENURE_OPTIONS = [6, 12, 24, 36] as const;
 type TenureMonths = (typeof TENURE_OPTIONS)[number];
@@ -209,6 +325,33 @@ const COPY = {
       "A 12-month buffer is often helpful for harvest cycles. You can still choose 6 months.",
     incomeHintOther:
       "A 6-month buffer is a common starting point. You can choose 12 if you want more breathing room.",
+    trustProfileTitle: "Your Trust Profile",
+    trustSub:
+      "Banks often need paperwork. BharosaLoan can also read everyday reliability — no single signal is required.",
+    trustSupport:
+      "Toggle what applies to you. Several smaller signals together can be as strong as one traditional document.",
+    trustScoreLabel: "Trust Score",
+    trustBreakdown: "What built this score",
+    trustNoneYet: "Toggle any signal below to start building your score. Zero is a starting point, not a rejection.",
+    trustOn: "Included",
+    trustOff: "Not using",
+    trustPoints: "+{n} points",
+    collateralNote: "What are you offering? (optional note)",
+    collateralPh: "e.g. two-wheeler, gold jewellery",
+    trustBenefitTitle: "A stronger trust profile can improve your rate",
+    trustBenefitBody:
+      "Score {score}/100 → estimated rate improvement up to {discount}% p.a. {extra}",
+    trustBenefitSkip: "You may skip an extra verification step with some partners.",
+    trustBenefitNone: "Add a few more signals to unlock a rate improvement.",
+    trustBenefitBand: "Current band: {band}",
+    trustBandLow: "Building",
+    trustBandMid: "Steady",
+    trustBandHigh: "Strong",
+    trustChecklistItem: "Trust profile reviewed",
+    lenderTrustNote: "Your Trust Score {score} improves listed rates by up to {discount}% p.a.",
+    lenderSkipVerify: "Extra verification step skipped for this profile",
+    baseRate: "Listed rate",
+    yourRate: "Your rate with Trust Score",
     structureTitle: "How repayment actually works",
     structureSub:
       "Choose your repayment tenure. Buffer months are extra time with no extra interest.",
@@ -376,6 +519,33 @@ const COPY = {
       "फसल चक्र के लिए अक्सर 12 महीने की राहत अवधि मददगार होती है। फिर भी आप 6 महीने चुन सकते हैं।",
     incomeHintOther:
       "6 महीने की राहत अवधि एक साधारण शुरुआत है। ज़्यादा समय चाहिए तो 12 महीने चुनें।",
+    trustProfileTitle: "आपकी विश्वास प्रोफ़ाइल",
+    trustSub:
+      "बैंक अक्सर कागज़ात माँगते हैं। BharosaLoan रोज़मर्रा की विश्वसनीयता भी पढ़ सकता है — कोई एक संकेत ज़रूरी नहीं।",
+    trustSupport:
+      "जो आप पर लागू हो उसे चालू करें। कई छोटे संकेत मिलकर एक पारंपरिक दस्तावेज़ जितने मज़बूत हो सकते हैं।",
+    trustScoreLabel: "ट्रस्ट स्कोर",
+    trustBreakdown: "इस स्कोर में क्या जुड़ा",
+    trustNoneYet: "नीचे कोई भी संकेत चालू करें। शून्य शुरुआत है, अस्वीकृति नहीं।",
+    trustOn: "शामिल",
+    trustOff: "नहीं ले रहे",
+    trustPoints: "+{n} अंक",
+    collateralNote: "क्या पेश कर रहे हैं? (वैकल्पिक नोट)",
+    collateralPh: "जैसे दोपहिया, सोने के गहने",
+    trustBenefitTitle: "मज़बूत ट्रस्ट प्रोफ़ाइल आपकी दर सुधार सकती है",
+    trustBenefitBody:
+      "स्कोर {score}/100 → अनुमानित दर सुधार {discount}% प्रति वर्ष तक। {extra}",
+    trustBenefitSkip: "कुछ साझेदारों के साथ अतिरिक्त जाँच चरण छोड़ सकते हैं।",
+    trustBenefitNone: "दर सुधार खोलने के लिए कुछ और संकेत जोड़ें।",
+    trustBenefitBand: "वर्तमान स्तर: {band}",
+    trustBandLow: "बन रहा है",
+    trustBandMid: "स्थिर",
+    trustBandHigh: "मज़बूत",
+    trustChecklistItem: "ट्रस्ट प्रोफ़ाइल देखी गई",
+    lenderTrustNote: "आपके ट्रस्ट स्कोर {score} से सूचीबद्ध दर में {discount}% प्रति वर्ष तक सुधार।",
+    lenderSkipVerify: "इस प्रोफ़ाइल के लिए अतिरिक्त जाँच चरण छोड़ा गया",
+    baseRate: "सूचीबद्ध दर",
+    yourRate: "ट्रस्ट स्कोर के साथ आपकी दर",
     structureTitle: "वापसी वास्तव में कैसे होती है",
     structureSub:
       "अपनी वापसी अवधि चुनें। राहत के महीने अतिरिक्त समय हैं — उन पर कोई अतिरिक्त ब्याज नहीं।",
@@ -526,6 +696,165 @@ function inr(n: number): string {
   }).format(Math.round(n));
 }
 
+const EN_ONES = [
+  "",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+];
+const EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+const HI_ONES = [
+  "",
+  "एक",
+  "दो",
+  "तीन",
+  "चार",
+  "पाँच",
+  "छह",
+  "सात",
+  "आठ",
+  "नौ",
+  "दस",
+  "ग्यारह",
+  "बारह",
+  "तेरह",
+  "चौदह",
+  "पंद्रह",
+  "सोलह",
+  "सत्रह",
+  "अठारह",
+  "उन्नीस",
+];
+const HI_TENS = [
+  "",
+  "",
+  "बीस",
+  "तीस",
+  "चालीस",
+  "पचास",
+  "साठ",
+  "सत्तर",
+  "अस्सी",
+  "नब्बे",
+];
+const HI_COMPOUND: Record<number, string> = {
+  21: "इक्कीस",
+  22: "बाईस",
+  23: "तेइस",
+  24: "चौबीस",
+  25: "पच्चीस",
+  26: "छब्बीस",
+  27: "सत्ताईस",
+  28: "अट्ठाईस",
+  29: "उनतीस",
+  31: "इकतीस",
+  32: "बत्तीस",
+  35: "पैंतीस",
+  40: "चालीस",
+  45: "पैंतालीस",
+  50: "पचास",
+  75: "पचहत्तर",
+  99: "निन्यानवे",
+};
+
+/** Convert an integer to English words (Indian numbering: thousand / lakh). */
+function numberToWordsEn(n: number): string {
+  const num = Math.round(Math.abs(n));
+  if (num === 0) return "zero";
+  if (num < 20) return EN_ONES[num];
+  if (num < 100) {
+    const t = Math.floor(num / 10);
+    const o = num % 10;
+    return o ? `${EN_TENS[t]} ${EN_ONES[o]}` : EN_TENS[t];
+  }
+  if (num < 1000) {
+    const h = Math.floor(num / 100);
+    const rest = num % 100;
+    return rest ? `${EN_ONES[h]} hundred ${numberToWordsEn(rest)}` : `${EN_ONES[h]} hundred`;
+  }
+  if (num < 100_000) {
+    const th = Math.floor(num / 1000);
+    const rest = num % 1000;
+    const head = `${numberToWordsEn(th)} thousand`;
+    return rest ? `${head} ${numberToWordsEn(rest)}` : head;
+  }
+  const lakh = Math.floor(num / 100_000);
+  const rest = num % 100_000;
+  const head = `${numberToWordsEn(lakh)} lakh`;
+  return rest ? `${head} ${numberToWordsEn(rest)}` : head;
+}
+
+/** Convert an integer to Hindi words (Indian numbering: हज़ार / लाख). */
+function numberToWordsHi(n: number): string {
+  const num = Math.round(Math.abs(n));
+  if (num === 0) return "शून्य";
+  if (HI_COMPOUND[num]) return HI_COMPOUND[num];
+  if (num < 20) return HI_ONES[num];
+  if (num < 100) {
+    const t = Math.floor(num / 10);
+    const o = num % 10;
+    if (!o) return HI_TENS[t];
+    if (HI_COMPOUND[num]) return HI_COMPOUND[num];
+    return `${HI_TENS[t]} ${HI_ONES[o]}`;
+  }
+  if (num < 1000) {
+    const h = Math.floor(num / 100);
+    const rest = num % 100;
+    const hundredWord = h === 1 ? "एक सौ" : `${HI_ONES[h]} सौ`;
+    return rest ? `${hundredWord} ${numberToWordsHi(rest)}` : hundredWord;
+  }
+  if (num < 100_000) {
+    const th = Math.floor(num / 1000);
+    const rest = num % 1000;
+    const head = th === 1 ? "एक हज़ार" : `${numberToWordsHi(th)} हज़ार`;
+    return rest ? `${head} ${numberToWordsHi(rest)}` : head;
+  }
+  const lakh = Math.floor(num / 100_000);
+  const rest = num % 100_000;
+  const head = lakh === 1 ? "एक लाख" : `${numberToWordsHi(lakh)} लाख`;
+  return rest ? `${head} ${numberToWordsHi(rest)}` : head;
+}
+
+function numberToWords(n: number, lang: Lang): string {
+  return lang === "hi" ? numberToWordsHi(n) : numberToWordsEn(n);
+}
+
+/** Speakable rupee amount, e.g. "twenty five thousand rupees" / "पच्चीस हज़ार रुपये". */
+function amountToSpeech(n: number, lang: Lang): string {
+  const words = numberToWords(n, lang);
+  return lang === "hi" ? `${words} रुपये` : `${words} rupees`;
+}
+
+/** Replace ₹ / Rs amounts in a string with natural spoken words before TTS. */
+function rupeeAmountsToSpeech(text: string, lang: Lang): string {
+  return text
+    .replace(/₹\s*([\d,]+(?:\.\d+)?)/g, (_m, raw: string) => {
+      const n = Number(String(raw).replace(/,/g, ""));
+      return Number.isFinite(n) ? amountToSpeech(n, lang) : _m;
+    })
+    .replace(/\bRs\.?\s*([\d,]+(?:\.\d+)?)/gi, (_m, raw: string) => {
+      const n = Number(String(raw).replace(/,/g, ""));
+      return Number.isFinite(n) ? amountToSpeech(n, lang) : _m;
+    });
+}
+
 function monthlyRate(annualPct: number): number {
   return annualPct / 12 / 100;
 }
@@ -674,6 +1003,21 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
     en: "You can filter partners by Bank or NBFC. Every listed partner shows an RBI Registered or RBI Licensed badge with rate and processing fee before you choose.",
     hi: "आप साझेदारों को बैंक या एनबीएफसी से छान सकते हैं। हर सूचीबद्ध साझेदार पर आरबीआई बैज, दर और प्रोसेसिंग शुल्क चुनने से पहले दिखता है।",
   },
+  {
+    keys: ["trust score", "trust profile", "ट्रस्ट", "विश्वास स्कोर", "प्रोफ़ाइल", "score"],
+    en: "Your Trust Score (0–100) is built from everyday signals you choose — UPI consistency, utility bills, gig ratings, mandi sales, SHG savings, community vouching, and optional bank or collateral info. Each toggle shows exactly how many points it adds. Nothing is a black box.",
+    hi: "आपका ट्रस्ट स्कोर (0–100) उन रोज़मर्रा संकेतों से बनता है जो आप चुनते हैं — UPI नियमितता, बिल, गिग रेटिंग, मंडी बिक्री, एसएचजी बचत, समुदाय की सिफ़ारिश, और वैकल्पिक बैंक या जमानत। हर टॉगल बताता है कितने अंक जुड़ते हैं। कोई ब्लैक-बॉक्स नहीं।",
+  },
+  {
+    keys: ["bank statement", "mandatory", "required", "paperwork", "स्टेटमेंट", "ज़रूरी", "कागज़", "mandatory bank"],
+    en: "A bank statement is helpful but never mandatory here. Many reliable people have irregular cash or digital income without thick paperwork. Multiple smaller signals can add up to the same trust as one formal document.",
+    hi: "बैंक स्टेटमेंट मददगार है, पर यहाँ कभी अनिवार्य नहीं। कई भरोसेमंद लोगों के पास मोटा कागज़ी इतिहास नहीं होता। कई छोटे संकेत मिलकर एक औपचारिक दस्तावेज़ जितना विश्वास बना सकते हैं।",
+  },
+  {
+    keys: ["vouch", "vouching", "community", " guarantor", "सिफ़ारिश", "वouch", "परिचित", "समुदाय"],
+    en: "Community vouching means a known contact who has already repaid a BharosaLoan is willing to support your application. It adds a modest number of points and is optional — never a pressure on friends or family.",
+    hi: "समुदाय की सिफ़ारिश का मतलब है कोई परिचित जिसने पहले भरोसालोन चुकाया हो, आपके आवेदन का समर्थन करे। इससे मामूली अंक जुड़ते हैं और यह वैकल्पिक है — दोस्तों या परिवार पर दबाव नहीं।",
+  },
 ];
 
 function matchFaq(q: string, lang: Lang): string {
@@ -714,7 +1058,9 @@ function speak(
     window.speechSynthesis.cancel();
     // Chrome sometimes stays paused after cancel — nudge it.
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-    const u = new SpeechSynthesisUtterance(text);
+    // Never let TTS read ₹25,000 digit-by-digit — convert to natural words.
+    const spoken = rupeeAmountsToSpeech(text, lang);
+    const u = new SpeechSynthesisUtterance(spoken);
     u.lang = lang === "hi" ? "hi-IN" : "en-IN";
     u.rate = 0.92;
     u.pitch = 1;
@@ -753,6 +1099,18 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const [repayMonths, setRepayMonths] = useState<TenureMonths>(24);
   const [purpose, setPurpose] = useState<PurposeId>("crop");
   const [income, setIncome] = useState<IncomeId>("seasonal");
+  const [trustSignals, setTrustSignals] = useState<Record<TrustSignalId, boolean>>({
+    bank: false,
+    collateral: false,
+    upi: false,
+    utility: false,
+    gig: false,
+    mandi: false,
+    shg: false,
+    vouch: false,
+  });
+  const [collateralNote, setCollateralNote] = useState("");
+  const [displayScore, setDisplayScore] = useState(0);
   const [bufferMonths, setBufferMonths] = useState<6 | 12>(6);
   const [bufferMode, setBufferMode] = useState<BufferMode>("before");
   const [lenderId, setLenderId] = useState<string | null>(null);
@@ -774,8 +1132,17 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const L = (lang ?? "en") as Lang;
 
   const unlockedTenures = useMemo(() => availableTenures(amount), [amount]);
+  const trustScore = useMemo(
+    () => TRUST_SIGNALS.reduce((sum, s) => sum + (trustSignals[s.id] ? s.weight : 0), 0),
+    [trustSignals],
+  );
+  const rateDiscount = trustRateDiscount(trustScore);
+  const skipExtraVerify = trustSkipsExtraVerification(trustScore);
+  const trustBand =
+    trustScore >= 70 ? t(L, "trustBandHigh") : trustScore >= 40 ? t(L, "trustBandMid") : t(L, "trustBandLow");
   const lender = LENDERS.find((x) => x.id === lenderId) ?? null;
-  const rate = lender?.rate ?? LENDERS[0].rate;
+  const baseRate = lender?.rate ?? LENDERS[0].rate;
+  const rate = Math.round((baseRate - rateDiscount) * 100) / 100;
   const emi = standardEmi(amount, rate, repayMonths);
   const minEmi = Math.round(emi * MIN_EMI_RATIO);
   const maxEmi = Math.round(emi * MAX_EMI_RATIO);
@@ -812,11 +1179,26 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     }
   }, [unlockedTenures, repayMonths]);
 
+  // Animate the displayed Trust Score toward the real total.
+  useEffect(() => {
+    if (displayScore === trustScore) return;
+    const dir = trustScore > displayScore ? 1 : -1;
+    const id = window.setTimeout(() => {
+      setDisplayScore((s) => {
+        const next = s + dir * Math.max(1, Math.ceil(Math.abs(trustScore - s) / 6));
+        if ((dir > 0 && next >= trustScore) || (dir < 0 && next <= trustScore)) return trustScore;
+        return next;
+      });
+    }, 28);
+    return () => clearTimeout(id);
+  }, [trustScore, displayScore]);
+
   const trust = [
     { id: "rbi", label: t(L, "trustRbi"), on: true },
     { id: "exit", label: t(L, "trustExit"), on: true },
     { id: "lang", label: t(L, "trustLang"), on: !!lang },
-    { id: "details", label: t(L, "trustDetails"), on: reached("structure") },
+    { id: "details", label: t(L, "trustDetails"), on: reached("trust") },
+    { id: "trustProfile", label: t(L, "trustChecklistItem"), on: reached("structure") },
     { id: "structure", label: t(L, "trustStructure"), on: reached("lender") },
     { id: "partner", label: t(L, "trustPartner"), on: !!lenderId },
     { id: "price", label: t(L, "trustPrice"), on: reached("review") },
@@ -834,6 +1216,12 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         ? `ऋण राशि चुनें, उद्देश्य बताएँ, और कमाई कैसे आती है। अभी राशि ${inr(amount)} है।`
         : `Choose a loan amount, a purpose, and how income usually arrives. Amount is currently ${inr(amount)}.`;
     }
+    if (step === "trust") {
+      const active = TRUST_SIGNALS.filter((s) => trustSignals[s.id]).length;
+      return g === "hi"
+        ? `आपकी विश्वास प्रोफ़ाइल। ट्रस्ट स्कोर ${trustScore} में से 100 है। ${active} संकेत चालू हैं। बैंक स्टेटमेंट ज़रूरी नहीं। मज़बूत स्कोर आपकी ब्याज दर सुधार सकता है।`
+        : `Your Trust Profile. Trust Score is ${trustScore} out of 100. ${active} signals are on. A bank statement is not required. A stronger score can improve your interest rate.`;
+    }
     if (step === "structure") {
       return g === "hi"
         ? `वापसी ${repayMonths} महीने की है। ${bufferMonths} महीने की राहत पर ब्याज शून्य है। ब्याज ${inr(interestTotal)} है। अगर राहत पर ब्याज लगता तो अतिरिक्त ${inr(bufferIfCharged)} जुड़ता — वह नहीं लगता। किस्त ${inr(emi)} के 60 से 140 प्रतिशत के बीच लचीली है।`
@@ -841,8 +1229,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     }
     if (step === "lender") {
       return g === "hi"
-        ? "बैंक या एनबीएफसी साझेदार चुनें। हर कार्ड पर आरबीआई बैज, दर और प्रोसेसिंग शुल्क पहले से लिखा है।"
-        : "Choose a Bank or NBFC partner. Each card lists the RBI badge, rate, and processing fee before you select.";
+        ? `बैंक या एनबीएफसी साझेदार चुनें। आपके ट्रस्ट स्कोर ${trustScore} से दर में ${rateDiscount} प्रतिशत तक सुधार हो सकता है।${skipExtraVerify ? " अतिरिक्त जाँच चरण छोड़ा जा सकता है।" : ""} हर कार्ड पर आरबीआई बैज लिखा है।`
+        : `Choose a Bank or NBFC partner. Your Trust Score ${trustScore} can improve rates by up to ${rateDiscount} percent.${skipExtraVerify ? " An extra verification step may be skipped." : ""} Each card shows an RBI badge.`;
     }
     if (step === "insurance") {
       return g === "hi"
@@ -893,6 +1281,10 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     undone,
     waitSkipped,
     undoLeft,
+    trustScore,
+    trustSignals,
+    rateDiscount,
+    skipExtraVerify,
   ]);
 
   useEffect(() => {
@@ -1052,6 +1444,26 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     setLenderId(null);
     setLenderFilter("all");
     setUndoLeft(UNDO_SECONDS);
+    setTrustSignals({
+      bank: false,
+      collateral: false,
+      upi: false,
+      utility: false,
+      gig: false,
+      mandi: false,
+      shg: false,
+      vouch: false,
+    });
+    setCollateralNote("");
+    setDisplayScore(0);
+  }
+
+  function toggleTrustSignal(id: TrustSignalId) {
+    setTrustSignals((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (id === "collateral" && prev[id]) setCollateralNote("");
+      return next;
+    });
   }
 
   const canNext =
@@ -1304,6 +1716,132 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
             </Card>
           )}
 
+          {step === "trust" && (
+            <Card>
+              <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "trustProfileTitle")}</h1>
+              <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "trustSub")}</p>
+              <p className="mt-2 text-base leading-relaxed text-stone-700">{t(L, "trustSupport")}</p>
+
+              <div className="mt-6 rounded-3xl bg-gradient-to-br from-green-800 to-green-900 p-5 text-white shadow-card sm:p-6">
+                <p className="text-sm font-semibold uppercase tracking-wide text-green-100">
+                  {t(L, "trustScoreLabel")}
+                </p>
+                <div className="mt-2 flex flex-wrap items-end gap-3">
+                  <p
+                    className="text-5xl font-bold tabular-nums transition-all duration-300 sm:text-6xl"
+                    data-testid="trust-score"
+                  >
+                    {displayScore}
+                  </p>
+                  <p className="mb-2 text-lg text-green-100">/ 100</p>
+                  <span className="mb-2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold">
+                    {t(L, "trustBenefitBand", { band: trustBand })}
+                  </span>
+                </div>
+                <div className="mt-4 h-3 overflow-hidden rounded-full bg-black/20">
+                  <div
+                    className="h-full rounded-full bg-amber-300 transition-all duration-300 ease-out"
+                    style={{ width: `${Math.min(100, displayScore)}%` }}
+                  />
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-green-50">
+                  <span className="font-semibold">{t(L, "trustBenefitTitle")}</span>
+                  <br />
+                  {rateDiscount > 0
+                    ? t(L, "trustBenefitBody", {
+                        score: trustScore,
+                        discount: rateDiscount.toFixed(2),
+                        extra: skipExtraVerify ? t(L, "trustBenefitSkip") : "",
+                      })
+                    : t(L, "trustBenefitNone")}
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <p className="font-semibold">{t(L, "trustBreakdown")}</p>
+                {trustScore === 0 ? (
+                  <p className="mt-2 text-sm text-stone-500">{t(L, "trustNoneYet")}</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {TRUST_SIGNALS.filter((s) => trustSignals[s.id]).map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2 text-sm text-green-950"
+                      >
+                        <span>{L === "hi" ? s.titleHi : s.titleEn}</span>
+                        <span className="font-bold">{t(L, "trustPoints", { n: s.weight })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                {TRUST_SIGNALS.map((s) => {
+                  const Icon = s.icon;
+                  const on = trustSignals[s.id];
+                  return (
+                    <div
+                      key={s.id}
+                      className={`rounded-2xl border p-4 transition-colors ${
+                        on ? "border-green-800 bg-green-50" : "border-stone-200 bg-white"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleTrustSignal(s.id)}
+                        className="flex w-full items-start gap-3 text-left"
+                        data-testid={`trust-signal-${s.id}`}
+                        aria-pressed={on}
+                      >
+                        <span
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                            on ? "bg-green-800 text-white" : "bg-amber-100 text-orange-800"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-base font-semibold text-stone-900">
+                              {L === "hi" ? s.titleHi : s.titleEn}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                                on ? "bg-green-800 text-white" : "bg-stone-200 text-stone-600"
+                              }`}
+                            >
+                              {on ? t(L, "trustOn") : t(L, "trustOff")} · {s.weight}
+                            </span>
+                          </span>
+                          <span className="mt-1 block text-sm leading-relaxed text-stone-600">
+                            {L === "hi" ? s.descHi : s.descEn}
+                          </span>
+                          {s.optionalNoteEn && (
+                            <span className="mt-1 block text-xs text-stone-500">
+                              {L === "hi" ? s.optionalNoteHi : s.optionalNoteEn}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      {s.id === "collateral" && on && (
+                        <label className="mt-3 block text-sm">
+                          <span className="font-medium text-stone-700">{t(L, "collateralNote")}</span>
+                          <input
+                            value={collateralNote}
+                            onChange={(e) => setCollateralNote(e.target.value)}
+                            placeholder={t(L, "collateralPh")}
+                            className="mt-1 min-h-11 w-full rounded-xl bg-white px-3 text-stone-900 outline-none ring-1 ring-stone-200"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           {step === "structure" && (
             <Card>
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "structureTitle")}</h1>
@@ -1479,6 +2017,21 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
             <Card>
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "lenderTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "lenderSub")}</p>
+              {(rateDiscount > 0 || skipExtraVerify) && (
+                <div className="mt-4 rounded-2xl bg-green-50 p-4 text-sm text-green-950 ring-1 ring-green-200">
+                  <p className="font-semibold">
+                    {t(L, "lenderTrustNote", {
+                      score: trustScore,
+                      discount: rateDiscount.toFixed(2),
+                    })}
+                  </p>
+                  {skipExtraVerify && (
+                    <p className="mt-1 flex items-center gap-1 font-medium">
+                      <Check className="h-4 w-4" /> {t(L, "lenderSkipVerify")}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap gap-2">
                 {(
                   [
@@ -1503,7 +2056,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {filteredLenders.map((ln) => {
-                  const e = standardEmi(amount, ln.rate, repayMonths);
+                  const yourRate = Math.round((ln.rate - rateDiscount) * 100) / 100;
+                  const e = standardEmi(amount, yourRate, repayMonths);
                   const active = lenderId === ln.id;
                   return (
                     <button
@@ -1529,10 +2083,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                       <p className="mt-3 text-sm leading-relaxed text-stone-600">
                         {L === "hi" ? ln.focusHi : ln.focusEn}
                       </p>
+                      {skipExtraVerify && (
+                        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-800/10 px-2 py-1 text-xs font-semibold text-green-900">
+                          <Check className="h-3.5 w-3.5" /> {t(L, "lenderSkipVerify")}
+                        </p>
+                      )}
                       <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <dt className="text-stone-500">{t(L, "annualRate")}</dt>
-                          <dd className="text-lg font-bold">{ln.rate}% p.a.</dd>
+                          {rateDiscount > 0 ? (
+                            <>
+                              <dt className="text-stone-500">{t(L, "baseRate")}</dt>
+                              <dd className="font-semibold text-stone-500 line-through decoration-stone-400">
+                                {ln.rate}% p.a.
+                              </dd>
+                              <dt className="mt-1 text-stone-500">{t(L, "yourRate")}</dt>
+                              <dd className="text-lg font-bold text-green-900">{yourRate}% p.a.</dd>
+                            </>
+                          ) : (
+                            <>
+                              <dt className="text-stone-500">{t(L, "annualRate")}</dt>
+                              <dd className="text-lg font-bold">{ln.rate}% p.a.</dd>
+                            </>
+                          )}
                         </div>
                         <div>
                           <dt className="text-stone-500">{t(L, "procFee")}</dt>
@@ -1638,6 +2210,10 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   <div className="mt-2">
                     <RbiBadge lang={L} kind={lender.badge} />
                   </div>
+                  <Row k={t(L, "trustScoreLabel")} v={`${trustScore}/100`} />
+                  {rateDiscount > 0 && (
+                    <Row k={t(L, "yourRate")} v={`${rate}% p.a. (−${rateDiscount.toFixed(2)})`} />
+                  )}
                   <Row k={t(L, "purposeLine")} v={t(L, purposeKey(purpose))} />
                   <Row k={t(L, "incomeLine")} v={t(L, incomeKey(income))} />
                   <Row k={t(L, "tenure")} v={t(L, "years2", { n: repayMonths })} />
