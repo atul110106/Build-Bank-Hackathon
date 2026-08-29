@@ -15,11 +15,10 @@ export function App() {
   const [loanOpen, setLoanOpen] = useState(false);
 
   useEffect(() => {
-    // If we already have a token, try to load accounts to confirm the session.
     if (api.isAuthenticated()) {
       api
-        .getAccounts()
-        .then(() => setUser({ id: "user-1", name: "Ada Lovelace", email: "demo@securebank.test" }))
+        .getMe()
+        .then(({ user }) => setUser(user))
         .catch(() => api.logout())
         .finally(() => setBooted(true));
     } else {

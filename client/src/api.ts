@@ -23,7 +23,7 @@ export interface Transaction {
   createdAt: string;
 }
 
-let token: string | null = localStorage.getItem("sb_token");
+let token: string | null = sessionStorage.getItem("sb_token");
 
 function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -55,12 +55,15 @@ export const api = {
       body: JSON.stringify({ email, password }),
     });
     token = data.token;
-    localStorage.setItem("sb_token", data.token);
+    sessionStorage.setItem("sb_token", data.token);
     return data.user;
   },
   logout() {
     token = null;
-    localStorage.removeItem("sb_token");
+    sessionStorage.removeItem("sb_token");
+  },
+  getMe() {
+    return request<{ user: User }>("/me");
   },
   getAccounts() {
     return request<{ accounts: Account[] }>("/accounts");
