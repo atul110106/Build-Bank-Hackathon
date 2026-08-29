@@ -189,6 +189,8 @@ const COPY = {
     interestSaved: "Amount you do not pay because the buffer is interest-free",
     interestSavedHint:
       "If interest had run on the unpaid principal during the buffer, this extra amount would have been added. BharosaLoan does not add it.",
+    ratePreview:
+      "Preview rate {rate}% p.a. — used only so you can see the buffer math. Your partner on the next step sets the final rate.",
     emiTitle: "Flexible instalments (60% – 140%)",
     emiSub:
       "Tap a repayment month and move it up or down. Other unlocked months rebalance so the 24-month total still matches.",
@@ -341,6 +343,8 @@ const COPY = {
     interestSaved: "राहत अवधि ब्याज-मुक्त होने से जो राशि नहीं लगती",
     interestSavedHint:
       "अगर राहत के दौरान बकाया मूल राशि पर ब्याज चलता, तो यह अतिरिक्त राशि जुड़ती। BharosaLoan इसे नहीं जोड़ता।",
+    ratePreview:
+      "पूर्वावलोकन दर {rate}% प्रति वर्ष — केवल राहत अवधि का हिसाब दिखाने के लिए। अगले चरण का साझेदार अंतिम दर तय करेगा।",
     emiTitle: "लचीली किस्त (60% – 140%)",
     emiSub:
       "किसी भुगतान महीने पर टैप करें और उसे ऊपर-नीचे करें। बाकी खुले महीने संतुलित हो जाते हैं ताकि 24 महीने का योग वही रहे।",
@@ -1156,6 +1160,9 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   <IndianRupee className="h-5 w-5" />
                   {t(L, "interestTitle")}
                 </p>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">
+                  {t(L, "ratePreview", { rate: rate.toFixed(1) })}
+                </p>
                 <Line k={t(L, "interestOn24")} v={inr(interest24)} />
                 <Line k={t(L, "interestOnBuffer")} v={inr(0)} strong />
                 <div className="mt-3 rounded-xl bg-amber-50 p-3">
@@ -1413,10 +1420,14 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "confirm" && (
             <Card>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-800 text-white">
+              <div
+                className={`flex h-14 w-14 items-center justify-center rounded-full text-white ${
+                  undone ? "bg-stone-700" : "bg-green-800"
+                }`}
+              >
                 {undone ? <Undo2 className="h-7 w-7" /> : <Check className="h-7 w-7" />}
               </div>
-              <h1 className="mt-4 text-2xl font-bold sm:text-3xl">
+              <h1 className="mt-4 text-2xl font-bold sm:text-3xl" data-testid="confirm-title">
                 {undone ? t(L, "undone") : t(L, "confirmTitle")}
               </h1>
               {!undone && (
@@ -1424,7 +1435,12 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   {t(L, "confirmSub", { n: undoLeft })}
                 </p>
               )}
-              {undone && <p className="mt-2 text-base text-stone-600">{t(L, "afterUndo")}</p>}
+              {undone && (
+                <div className="mt-4 rounded-2xl bg-stone-100 p-4 ring-1 ring-stone-300">
+                  <p className="text-base font-semibold text-stone-900">{t(L, "afterUndo")}</p>
+                  <p className="mt-1 text-sm text-stone-600">{t(L, "coolingClosed")}</p>
+                </div>
+              )}
 
               {!undone && (
                 <div
@@ -1445,6 +1461,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                 {!undone && undoLeft > 0 && (
                   <button
                     type="button"
+                    data-testid="bharosa-undo"
                     onClick={() => setUndone(true)}
                     className="min-h-12 flex-1 rounded-2xl bg-white px-4 font-semibold text-stone-800 ring-1 ring-stone-300"
                   >
