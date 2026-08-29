@@ -1151,7 +1151,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 pb-40 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">
             {t(L, "trustTitle")}
