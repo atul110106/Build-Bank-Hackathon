@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import bcrypt from "bcryptjs";
 
 /**
  * In-memory data store for the SecureBank demo.
@@ -12,6 +13,13 @@ import { randomUUID } from "node:crypto";
 
 const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
+const DEMO_EMAIL = process.env.DEMO_EMAIL || "demo@securebank.test";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "hackathon";
+const PASSWORD_HASH = bcrypt.hashSync(DEMO_PASSWORD, 10);
+
+export const MAX_TRANSACTION_AMOUNT = Number(process.env.MAX_TRANSACTION_AMOUNT) || 100_000;
+export const MAX_DESCRIPTION_LENGTH = 200;
+
 function accountNumber() {
   return `**** ${Math.floor(1000 + Math.random() * 9000)}`;
 }
@@ -20,8 +28,8 @@ function createInitialState() {
   const user = {
     id: "user-1",
     name: "Ada Lovelace",
-    email: "demo@securebank.test",
-    password: "hackathon",
+    email: DEMO_EMAIL,
+    passwordHash: PASSWORD_HASH,
   };
 
   const checking = {
@@ -90,23 +98,39 @@ export function getUser() {
   return state.user;
 }
 
-export function verifyCredentials(email, password) {
+export async function verifyCredentials(email, password) {
   const u = state.user;
-  if (u.email.toLowerCase() === String(email).toLowerCase() && u.password === password) {
-    return { id: u.id, name: u.name, email: u.email };
+  if (u.email.toLowerCase() !== String(email).toLowerCase()) {
+    return null;
   }
-  return null;
+  const ok = await bcrypt.compare(password, u.passwordHash);
+  if (!ok) {
+    return null;
+  }
+  return { id: u.id, name: u.name, email: u.email };
 }
 
-export function listAccounts() {
-  return state.accounts.map((a) => ({ ...a }));
+export function listAccounts(userId) {
+  return state.accounts.filter((a) => a.userId === userId).map((a) => ({ ...a }));
 }
 
 export function getAccount(id) {
   return state.accounts.find((a) => a.id === id);
 }
 
-export function listTransactions(accountId) {
+function getAccountForUser(accountId, userId) {
+  const account = getAccount(accountId);
+  if (!account) {
+    throw new BankError("Account not found.", 404);
+  }
+  if (account.userId !== userId) {
+    throw new BankError("Access denied.", 403);
+  }
+  return account;
+}
+
+export function listTransactions(accountId, userId) {
+  getAccountForUser(accountId, userId);
   return state.transactions
     .filter((t) => t.accountId === accountId)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -140,27 +164,38 @@ function validateAmount(amount) {
   if (!Number.isFinite(value) || value <= 0) {
     throw new BankError("Amount must be a positive number.");
   }
+  if (value > MAX_TRANSACTION_AMOUNT) {
+    throw new BankError(`Amount cannot exceed ${MAX_TRANSACTION_AMOUNT.toLocaleString()}.`);
+  }
   return round2(value);
 }
 
-export function deposit(accountId, amount, description) {
-  const account = getAccount(accountId);
-  if (!account) throw new BankError("Account not found.", 404);
+function validateDescription(description, fallback) {
+  const text = String(description ?? fallback ?? "").trim();
+  if (text.length > MAX_DESCRIPTION_LENGTH) {
+    throw new BankError(`Description must be at most ${MAX_DESCRIPTION_LENGTH} characters.`);
+  }
+  return text || fallback || "";
+}
+
+export function deposit(accountId, amount, description, userId) {
+  const account = getAccountForUser(accountId, userId);
   const value = validateAmount(amount);
+  const note = validateDescription(description, "Deposit");
   account.balance = round2(account.balance + value);
   const tx = recordTransaction(account, {
     type: "deposit",
     amount: value,
-    description: description || "Deposit",
+    description: note,
     counterparty: "Cash / external",
   });
   return { account: { ...account }, transaction: tx };
 }
 
-export function withdraw(accountId, amount, description) {
-  const account = getAccount(accountId);
-  if (!account) throw new BankError("Account not found.", 404);
+export function withdraw(accountId, amount, description, userId) {
+  const account = getAccountForUser(accountId, userId);
   const value = validateAmount(amount);
+  const note = validateDescription(description, "Withdrawal");
   if (value > account.balance) {
     throw new BankError("Insufficient funds for this withdrawal.");
   }
@@ -168,20 +203,20 @@ export function withdraw(accountId, amount, description) {
   const tx = recordTransaction(account, {
     type: "withdrawal",
     amount: value,
-    description: description || "Withdrawal",
+    description: note,
     counterparty: "Cash / external",
   });
   return { account: { ...account }, transaction: tx };
 }
 
-export function transfer(fromAccountId, toAccountId, amount, description) {
+export function transfer(fromAccountId, toAccountId, amount, description, userId) {
   if (fromAccountId === toAccountId) {
     throw new BankError("Cannot transfer to the same account.");
   }
-  const from = getAccount(fromAccountId);
-  const to = getAccount(toAccountId);
-  if (!from || !to) throw new BankError("Account not found.", 404);
+  const from = getAccountForUser(fromAccountId, userId);
+  const to = getAccountForUser(toAccountId, userId);
   const value = validateAmount(amount);
+  const note = validateDescription(description, `Transfer to ${to.name}`);
   if (value > from.balance) {
     throw new BankError("Insufficient funds for this transfer.");
   }
@@ -192,13 +227,13 @@ export function transfer(fromAccountId, toAccountId, amount, description) {
   const outTx = recordTransaction(from, {
     type: "transfer-out",
     amount: value,
-    description: description || `Transfer to ${to.name}`,
+    description: note,
     counterparty: to.name,
   });
   const inTx = recordTransaction(to, {
     type: "transfer-in",
     amount: value,
-    description: description || `Transfer from ${from.name}`,
+    description: validateDescription(description, `Transfer from ${from.name}`),
     counterparty: from.name,
   });
 

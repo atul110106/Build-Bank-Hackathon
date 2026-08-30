@@ -14,34 +14,50 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
+  Gem,
+  Handshake,
   HeartHandshake,
   IndianRupee,
   Languages,
+  Landmark,
   Leaf,
   MessageCircle,
   RotateCcw,
   Send,
+  Smartphone,
   Sprout,
+  Star,
   Store,
   Undo2,
+  Users,
   Volume2,
   VolumeX,
   Wallet,
   X,
+  Zap,
 } from "lucide-react";
 
 type Lang = "en" | "hi";
 type Step =
   | "language"
   | "basics"
+  | "trust"
   | "structure"
   | "lender"
   | "insurance"
   | "review"
   | "confirm";
-type BufferMode = "before" | "distributed";
 type PurposeId = "crop" | "vehicle" | "capital" | "livestock" | "shop";
 type IncomeId = "daily" | "gig" | "seasonal" | "mixed";
+type TrustSignalId =
+  | "bank"
+  | "collateral"
+  | "upi"
+  | "utility"
+  | "gig"
+  | "mandi"
+  | "shg"
+  | "vouch";
 
 type Lender = {
   id: string;
@@ -59,6 +75,7 @@ type ChatMsg = { id: number; role: "user" | "bot"; text: string };
 const STEPS: Step[] = [
   "language",
   "basics",
+  "trust",
   "structure",
   "lender",
   "insurance",
@@ -66,10 +83,107 @@ const STEPS: Step[] = [
   "confirm",
 ];
 
+const TRUST_SIGNALS: {
+  id: TrustSignalId;
+  weight: number;
+  icon: typeof Landmark;
+  titleEn: string;
+  titleHi: string;
+  descEn: string;
+  descHi: string;
+  optionalNoteEn?: string;
+  optionalNoteHi?: string;
+}[] = [
+  {
+    id: "bank",
+    weight: 18,
+    icon: Landmark,
+    titleEn: "Bank statement / formal history",
+    titleHi: "बैंक स्टेटमेंट / औपचारिक इतिहास",
+    descEn: "Optional. Helpful if you have it — not required.",
+    descHi: "वैकल्पिक। हो तो मददगार — ज़रूरी नहीं।",
+    optionalNoteEn: "Traditional signal — many people skip this.",
+    optionalNoteHi: "पारंपरिक संकेत — कई लोग इसे छोड़ देते हैं।",
+  },
+  {
+    id: "collateral",
+    weight: 14,
+    icon: Gem,
+    titleEn: "Collateral offered",
+    titleHi: "जमानत / संपत्ति की पेशकश",
+    descEn: "Optional — e.g. two-wheeler or gold. Add a short note if yes.",
+    descHi: "वैकल्पिक — जैसे दोपहिया या सोना। हाँ हो तो छोटा नोट लिखें।",
+  },
+  {
+    id: "upi",
+    weight: 14,
+    icon: Smartphone,
+    titleEn: "UPI / digital payment consistency",
+    titleHi: "UPI / डिजिटल भुगतान की नियमितता",
+    descEn: "Small digital payments arriving regularly in recent months.",
+    descHi: "हाल के महीनों में छोटे डिजिटल भुगतान नियमित रूप से।",
+  },
+  {
+    id: "utility",
+    weight: 12,
+    icon: Zap,
+    titleEn: "Utility bill payment history",
+    titleHi: "बिजली / मोबाइल बिल भुगतान इतिहास",
+    descEn: "On-time electricity or mobile recharge patterns.",
+    descHi: "समय पर बिजली या मोबाइल रिचार्ज का पैटर्न।",
+  },
+  {
+    id: "gig",
+    weight: 12,
+    icon: Star,
+    titleEn: "Gig platform tenure & rating",
+    titleHi: "गिग प्लेटफ़ॉर्म अवधि और रेटिंग",
+    descEn: "For gig workers — months active and your rating.",
+    descHi: "गिग काम के लिए — सक्रिय महीने और आपकी रेटिंग।",
+  },
+  {
+    id: "mandi",
+    weight: 12,
+    icon: Store,
+    titleEn: "Mandi / market sales record",
+    titleHi: "मंडी / बाज़ार बिक्री रिकॉर्ड",
+    descEn: "For farmers — regular crop sales through a registered market.",
+    descHi: "किसानों के लिए — पंजीकृत मंडी में नियमित फसल बिक्री।",
+  },
+  {
+    id: "shg",
+    weight: 10,
+    icon: Users,
+    titleEn: "SHG / community savings group",
+    titleHi: "एसएचजी / सामुदायिक बचत समूह",
+    descEn: "Consistent contributions in a self-help or savings group.",
+    descHi: "स्वयं सहायता या बचत समूह में नियमित योगदान।",
+  },
+  {
+    id: "vouch",
+    weight: 8,
+    icon: Handshake,
+    titleEn: "Community vouching",
+    titleHi: "समुदाय की सिफ़ारिश",
+    descEn: "A known contact who already repaid a BharosaLoan is willing to vouch.",
+    descHi: "कोई परिचित जिसने पहले भरोसालोन चुकाया हो, सिफ़ारिश करने को तैयार है।",
+  },
+];
+
+function trustRateDiscount(score: number): number {
+  if (score >= 80) return 0.5;
+  if (score >= 60) return 0.3;
+  if (score >= 40) return 0.15;
+  return 0;
+}
+
+function trustSkipsExtraVerification(score: number): boolean {
+  return score >= 70;
+}
+
 const TENURE_OPTIONS = [6, 12, 24, 36] as const;
 type TenureMonths = (typeof TENURE_OPTIONS)[number];
-const MIN_EMI_RATIO = 0.6;
-const MAX_EMI_RATIO = 1.4;
+const COVER_SLABS = [25, 30, 35, 40, 45, 50] as const;
 const MIN_AMOUNT = 10_000;
 const MAX_AMOUNT = 200_000;
 const UNDO_SECONDS = 30;
@@ -182,16 +296,26 @@ const COPY = {
     voiceOn: "Voice on",
     voiceOff: "Voice off",
     next: "Continue",
+    nextBasics: "Looks good — continue",
+    nextTrust: "Continue with this score",
+    nextStructure: "Continue to partners",
+    nextLender: "Continue with this partner",
+    nextInsurance: "Continue to review",
+    nextReview: "Confirm application",
     back: "Back",
-    skipIns: "Continue without protection",
-    chooseLang: "Choose your language",
-    chooseLangSub: "You can switch anytime. Voice guidance will follow this language.",
+    skipIns: "Skip protection for now",
+    chooseLang: "Hi — which language feels easy?",
+    chooseLangSub: "Tap one. I’ll speak and show everything in that language. You can switch anytime.",
+    langTapHint: "Tap a language to start — no extra click needed",
     english: "English",
     hindi: "हिन्दी",
     stepOf: "Step {n} of {total}",
+    stepEncourage: "You’re doing fine — take your time",
+    tipLabel: "Quick tip",
+    guideName: "Your guide",
     basicsTitle: "Tell us what you need",
     basicsSub:
-      "There is no credit score trap here. We only need the amount, why you need it, and how money usually arrives for you.",
+      "No credit-score trap. Just the amount, why you need it, and how money usually comes in for you.",
     amount: "Loan amount",
     amountHint: "You can pick a preset or use the slider. Range ₹10,000 – ₹2,00,000.",
     purpose: "Purpose of this loan",
@@ -209,45 +333,87 @@ const COPY = {
       "A 12-month buffer is often helpful for harvest cycles. You can still choose 6 months.",
     incomeHintOther:
       "A 6-month buffer is a common starting point. You can choose 12 if you want more breathing room.",
+    trustProfileTitle: "Your Trust Profile",
+    trustSub:
+      "Banks often need paperwork. BharosaLoan can also read everyday reliability — no single signal is required.",
+    trustSupport:
+      "Toggle what applies to you. Several smaller signals together can be as strong as one traditional document.",
+    trustScoreLabel: "Trust Score",
+    trustBreakdown: "What built this score",
+    trustNoneYet: "Toggle any signal below to start building your score. Zero is a starting point, not a rejection.",
+    trustOn: "Included",
+    trustOff: "Not using",
+    trustPoints: "+{n} points",
+    collateralNote: "What are you offering? (optional note)",
+    collateralPh: "e.g. two-wheeler, gold jewellery",
+    trustBenefitTitle: "A stronger trust profile can improve your rate",
+    trustBenefitBody:
+      "Score {score}/100 → estimated rate improvement up to {discount}% p.a. {extra}",
+    trustBenefitSkip: "You may skip an extra verification step with some partners.",
+    trustBenefitNone: "Add a few more signals to unlock a rate improvement.",
+    trustBenefitBand: "Current band: {band}",
+    trustBandLow: "Building",
+    trustBandMid: "Steady",
+    trustBandHigh: "Strong",
+    trustChecklistItem: "Trust profile reviewed",
+    lenderTrustNote: "Your Trust Score {score} improves listed rates by up to {discount}% p.a.",
+    lenderSkipVerify: "Extra verification step skipped for this profile",
+    baseRate: "Listed rate",
+    yourRate: "Your rate with Trust Score",
     structureTitle: "How repayment actually works",
     structureSub:
-      "Choose your repayment tenure. Buffer months are extra time with no extra interest.",
+      "Choose your repayment tenure and buffer allowance. Mark any months as buffer (up to your allowance). Set any payment amount you need on other months — leftovers move to the remaining months so the full total is still paid across the calendar.",
     tenureLen: "Loan repayment tenure",
     tenureHint: "Longer tenures unlock as your loan amount increases.",
     tenureLocked: "Increase loan amount to unlock",
     monthsN: "{n} months",
-    bufferLen: "Buffer length",
+    bufferLen: "Buffer months you may mark",
     months6: "6 months",
     months12: "12 months",
-    bufferMode: "Where should the buffer sit?",
+    bufferHow: "How buffer months work",
+    bufferHowBody:
+      "Your calendar has {total} months ({repay} repayment tenure + {buffer} buffer slots). Tap months below and mark up to {buffer} of them as buffer (₹0, no interest). On every other month you can set any instalment amount — if you pay less this month, the rest is spread across the remaining payment months so the full loan total is still cleared.",
     modeBefore: "Before repayment starts",
     modeBeforeHint: "No instalment until the buffer ends. Interest still does not run in this wait.",
-    modeDist: "Skip-eligible months inside the tenure",
-    modeDistHint: "Repayment months plus skip months spread through the calendar.",
-    timelineLegendRepay: "Repayment month",
-    timelineLegendBuffer: "Buffer / skip — ₹0, no interest",
-    interestTitle: "Interest is only on repayment months",
+    modeDist: "You choose which months are buffer",
+    modeDistHint: "Mark any months as buffer up to your allowance.",
+    timelineLegendRepay: "Payment month",
+    timelineLegendBuffer: "Buffer month — ₹0, no interest",
+    interestTitle: "Interest is only on repayment tenure",
     interestOn24: "Interest on repayment tenure",
-    interestOnBuffer: "Interest on buffer period",
-    interestSaved: "Amount you do not pay because the buffer is interest-free",
+    interestOnBuffer: "Interest on buffer months",
+    interestSaved: "Amount you do not pay because buffer months are interest-free",
     interestSavedHint:
-      "If interest had run on the unpaid principal during the buffer, this extra amount would have been added. BharosaLoan does not add it.",
+      "If interest had run on the unpaid principal during buffer months, this extra amount would have been added. BharosaLoan does not add it.",
     ratePreview:
       "Preview rate {rate}% p.a. — used only so you can see the buffer math. Your partner on the next step sets the final rate.",
-    emiTitle: "Flexible instalments (60% – 140%)",
+    emiTitle: "Month planner — choose buffer months & flexible EMI",
     emiSub:
-      "Tap a repayment month and move it up or down. Other unlocked months rebalance so the tenure total still matches.",
-    stdEmi: "Standard instalment",
-    minEmi: "Low-income floor (60%)",
-    maxEmi: "Good-income cap (140%)",
+      "All {total} calendar months are shown. Mark up to {buffer} as buffer. On payment months set any amount you need — the leftover is redistributed so you still pay the full total.",
+    deadlineNote: "Choose buffer or change an EMI at least 2–3 days before that month’s due date.",
+    actionFull: "Split evenly again",
+    actionLess: "Set my own amount",
+    actionBuffer: "Mark as buffer (₹0)",
+    actionUnbuffer: "Make this a payment month",
+    bufferQuota: "Buffer months marked: {used} / {max}",
+    bufferQuotaFull: "You already marked {max} buffer months. Unmark one to choose another.",
+    skipMonthInfo: "This month is marked as buffer — ₹0 due, and no interest is charged.",
+    skipRequested: "Buffer month — ₹0. Other payment months carry the remaining total.",
+    stdEmi: "Standard EMI (if equal each tenure month)",
+    targetTotal: "Total to repay across calendar",
+    flexHint:
+      "Example: if the equal share is ₹2,314 and you pay ₹314 this month, the remaining ₹2,000 is spread across the other payment months.",
     thisMonth: "Selected month",
-    resetMonths: "Reset all months to standard",
-    lockHint: "Adjusted",
-    gapOver: "Scheduled total is {n} above the required tenure amount.",
-    gapUnder: "{n} still needs to be placed in other months (within the 60–140% band).",
-    gapOk: "Tenure total matches. You can still reshuffle months.",
+    resetMonths: "Reset all month choices",
+    lockHint: "Custom amount locked",
+    gapOver: "Scheduled total is {n} above the required amount — lower a locked month.",
+    gapUnder: "{n} still needs to be placed in other payment months.",
+    gapOk: "Payment total matches. You can still reshuffle months.",
     calendarSpan: "Calendar span: {n} months",
-    repayCount: "{n} months of actual repayment",
+    repayCount: "{n}-month repayment tenure",
+    customAmount: "Amount for this month",
+    insFeeSlab: "Premium changes every 5% cover step",
+    insFeeSlabNote: "Cover slab {pct}% → premium {fee}",
     lenderTitle: "Choose a bank or NBFC partner",
     lenderSub:
       "Filter by Bank or NBFC. Every partner shows an RBI badge, rate, and fee before you pick.",
@@ -323,17 +489,21 @@ const COPY = {
     trustStructure: "Buffer and flexible instalments shown",
     trustPartner: "Verified partner selected",
     trustPrice: "Full price shown before confirm",
-    chatTitle: "Ask about this loan",
-    chatPh: "Type a question…",
+    chatTitle: "Ask me anything",
+    chatPh: "Ask in your words…",
     chatHello:
-      "Hello. Ask about the buffer, instalments, missed payments, or protection. I use short prepared answers in this prototype.",
-    chatTyping: "Thinking…",
-    subtitleLabel: "Voice guide (also on screen)",
+      "Hi — I’m here to help. Ask about buffer months, flexible EMI, missed payments, or protection. Short, plain answers only.",
+    chatTyping: "One moment…",
+    chatSuggestBuffer: "How do buffer months work?",
+    chatSuggestEmi: "Can I pay less one month?",
+    chatSuggestProtect: "What does protection cover?",
+    subtitleLabel: "Your guide is saying",
     prototype: "Prototype · fictional partners only · not a real loan offer",
     month: "Month {n}",
-    skipMonth: "Skip",
+    skipMonth: "Buffer",
     repayMonth: "Pay",
     waitMonth: "Wait",
+    userSkipMonth: "Skip",
     flexBand: "Your band this month",
     years2: "{n} months repayment",
     plusBuffer: "+ {n} buffer months",
@@ -349,16 +519,26 @@ const COPY = {
     voiceOn: "आवाज़ चालू",
     voiceOff: "आवाज़ बंद",
     next: "आगे बढ़ें",
+    nextBasics: "ठीक है — आगे बढ़ें",
+    nextTrust: "इस स्कोर के साथ आगे",
+    nextStructure: "साझेदार चुनने जाएँ",
+    nextLender: "इस साझेदार के साथ आगे",
+    nextInsurance: "समीक्षा पर जाएँ",
+    nextReview: "आवेदन की पुष्टि करें",
     back: "पीछे",
-    skipIns: "बिना सुरक्षा के आगे बढ़ें",
-    chooseLang: "अपनी भाषा चुनें",
-    chooseLangSub: "आप कभी भी बदल सकते हैं। आवाज़ी गाइड इसी भाषा में चलेगी।",
+    skipIns: "अभी सुरक्षा छोड़ें",
+    chooseLang: "नमस्ते — कौन-सी भाषा आसान लगे?",
+    chooseLangSub: "एक पर टैप करें। मैं उसी भाषा में बोलूँगी और लिखूँगी। कभी भी बदल सकते हैं।",
+    langTapHint: "भाषा पर टैप करें — अलग से आगे बढ़ने की ज़रूरत नहीं",
     english: "English",
     hindi: "हिन्दी",
     stepOf: "चरण {n} / {total}",
+    stepEncourage: "सब ठीक चल रहा है — आराम से चुनें",
+    tipLabel: "छोटी सलाह",
+    guideName: "आपकी गाइड",
     basicsTitle: "आपको कितनी राशि चाहिए",
     basicsSub:
-      "यहाँ क्रेडिट स्कोर का जाल नहीं है। केवल राशि, वजह, और पैसे आमतौर पर कैसे आते हैं — बस इतना बताएँ।",
+      "यहाँ क्रेडिट स्कोर का जाल नहीं। बस राशि, वजह, और पैसे आमतौर पर कैसे आते हैं — इतना बताएँ।",
     amount: "ऋण राशि",
     amountHint: "तैयार विकल्प चुनें या स्लाइडर चलाएँ। सीमा ₹10,000 – ₹2,00,000।",
     purpose: "यह ऋण किस काम के लिए है",
@@ -376,45 +556,87 @@ const COPY = {
       "फसल चक्र के लिए अक्सर 12 महीने की राहत अवधि मददगार होती है। फिर भी आप 6 महीने चुन सकते हैं।",
     incomeHintOther:
       "6 महीने की राहत अवधि एक साधारण शुरुआत है। ज़्यादा समय चाहिए तो 12 महीने चुनें।",
+    trustProfileTitle: "आपकी विश्वास प्रोफ़ाइल",
+    trustSub:
+      "बैंक अक्सर कागज़ात माँगते हैं। BharosaLoan रोज़मर्रा की विश्वसनीयता भी पढ़ सकता है — कोई एक संकेत ज़रूरी नहीं।",
+    trustSupport:
+      "जो आप पर लागू हो उसे चालू करें। कई छोटे संकेत मिलकर एक पारंपरिक दस्तावेज़ जितने मज़बूत हो सकते हैं।",
+    trustScoreLabel: "ट्रस्ट स्कोर",
+    trustBreakdown: "इस स्कोर में क्या जुड़ा",
+    trustNoneYet: "नीचे कोई भी संकेत चालू करें। शून्य शुरुआत है, अस्वीकृति नहीं।",
+    trustOn: "शामिल",
+    trustOff: "नहीं ले रहे",
+    trustPoints: "+{n} अंक",
+    collateralNote: "क्या पेश कर रहे हैं? (वैकल्पिक नोट)",
+    collateralPh: "जैसे दोपहिया, सोने के गहने",
+    trustBenefitTitle: "मज़बूत ट्रस्ट प्रोफ़ाइल आपकी दर सुधार सकती है",
+    trustBenefitBody:
+      "स्कोर {score}/100 → अनुमानित दर सुधार {discount}% प्रति वर्ष तक। {extra}",
+    trustBenefitSkip: "कुछ साझेदारों के साथ अतिरिक्त जाँच चरण छोड़ सकते हैं।",
+    trustBenefitNone: "दर सुधार खोलने के लिए कुछ और संकेत जोड़ें।",
+    trustBenefitBand: "वर्तमान स्तर: {band}",
+    trustBandLow: "बन रहा है",
+    trustBandMid: "स्थिर",
+    trustBandHigh: "मज़बूत",
+    trustChecklistItem: "ट्रस्ट प्रोफ़ाइल देखी गई",
+    lenderTrustNote: "आपके ट्रस्ट स्कोर {score} से सूचीबद्ध दर में {discount}% प्रति वर्ष तक सुधार।",
+    lenderSkipVerify: "इस प्रोफ़ाइल के लिए अतिरिक्त जाँच चरण छोड़ा गया",
+    baseRate: "सूचीबद्ध दर",
+    yourRate: "ट्रस्ट स्कोर के साथ आपकी दर",
     structureTitle: "वापसी वास्तव में कैसे होती है",
     structureSub:
-      "अपनी वापसी अवधि चुनें। राहत के महीने अतिरिक्त समय हैं — उन पर कोई अतिरिक्त ब्याज नहीं।",
+      "वापसी अवधि और राहत भत्ता चुनें। अपनी स्थिति के अनुसार कोई भी महीने राहत के रूप में चिह्नित करें (सीमा तक)। बाकी महीनों पर अपनी ज़रूरत की किस्त तय करें — बाकी राशि अन्य महीनों में बँट जाती है ताकि पूरा योग कैलेंडर में चुकता रहे।",
     tenureLen: "ऋण वापसी की अवधि",
     tenureHint: "ऋण राशि बढ़ने पर लंबी अवधि खुलती है।",
     tenureLocked: "खोलने के लिए ऋण राशि बढ़ाएँ",
     monthsN: "{n} महीने",
-    bufferLen: "राहत अवधि की लंबाई",
+    bufferLen: "कितने महीने राहत चिह्नित कर सकते हैं",
     months6: "6 महीने",
     months12: "12 महीने",
-    bufferMode: "राहत अवधि कहाँ रहे?",
+    bufferHow: "राहत महीने कैसे काम करते हैं",
+    bufferHowBody:
+      "आपके कैलेंडर में {total} महीने हैं ({repay} वापसी अवधि + {buffer} राहत स्लॉट)। नीचे महीनों पर टैप करें और अधिकतम {buffer} को राहत (₹0, बिना ब्याज) चिह्नित करें। बाकी हर महीने पर कोई भी किस्त तय कर सकते हैं — इस महीने कम दें तो बाकी राशि अन्य भुगतान महीनों में बँट जाएगी ताकि पूरा ऋण योग पूरा हो।",
     modeBefore: "वापसी शुरू होने से पहले",
     modeBeforeHint: "राहत खत्म होने तक किस्त नहीं। इस इंतज़ार पर ब्याज नहीं चलता।",
-    modeDist: "अवधि के अंदर छोड़ने योग्य महीने",
-    modeDistHint: "भुगतान महीनों के साथ कैलेंडर में फैले छोड़ने योग्य महीने।",
+    modeDist: "आप चुनते हैं कौन से महीने राहत हैं",
+    modeDistHint: "अपनी सीमा तक कोई भी महीने राहत चिह्नित करें।",
     timelineLegendRepay: "भुगतान का महीना",
-    timelineLegendBuffer: "राहत / छोड़ें — ₹0, बिना ब्याज",
-    interestTitle: "ब्याज केवल भुगतान महीनों पर",
+    timelineLegendBuffer: "राहत महीना — ₹0, बिना ब्याज",
+    interestTitle: "ब्याज केवल वापसी अवधि पर",
     interestOn24: "वापसी अवधि पर ब्याज",
-    interestOnBuffer: "राहत अवधि पर ब्याज",
-    interestSaved: "राहत अवधि ब्याज-मुक्त होने से जो राशि नहीं लगती",
+    interestOnBuffer: "राहत महीनों पर ब्याज",
+    interestSaved: "राहत महीने ब्याज-मुक्त होने से जो राशि नहीं लगती",
     interestSavedHint:
-      "अगर राहत के दौरान बकाया मूल राशि पर ब्याज चलता, तो यह अतिरिक्त राशि जुड़ती। BharosaLoan इसे नहीं जोड़ता।",
+      "अगर राहत महीनों में बकाया मूल राशि पर ब्याज चलता, तो यह अतिरिक्त राशि जुड़ती। BharosaLoan इसे नहीं जोड़ता।",
     ratePreview:
       "पूर्वावलोकन दर {rate}% प्रति वर्ष — केवल राहत अवधि का हिसाब दिखाने के लिए। अगले चरण का साझेदार अंतिम दर तय करेगा।",
-    emiTitle: "लचीली किस्त (60% – 140%)",
+    emiTitle: "महीना योजना — राहत चुनें और लचीली किस्त",
     emiSub:
-      "किसी भुगतान महीने पर टैप करें और उसे ऊपर-नीचे करें। बाकी खुले महीने संतुलित हो जाते हैं ताकि अवधि का योग वही रहे।",
-    stdEmi: "सामान्य किस्त",
-    minEmi: "कम कमाई की न्यूनतम सीमा (60%)",
-    maxEmi: "अच्छी कमाई की अधिकतम सीमा (140%)",
+      "सभी {total} कैलेंडर महीने दिखते हैं। अधिकतम {buffer} को राहत चिह्नित करें। भुगतान महीनों पर अपनी राशि तय करें — बाकी राशि बाँटी जाती है ताकि पूरा योग चुकता रहे।",
+    deadlineNote: "राहत या किस्त का बदलाव उस महीने की देय तिथि से कम-से-कम 2–3 दिन पहले चुनें।",
+    actionFull: "फिर से बराबर बाँटें",
+    actionLess: "अपनी राशि लिखें",
+    actionBuffer: "राहत चिह्नित करें (₹0)",
+    actionUnbuffer: "इसे भुगतान महीना बनाएँ",
+    bufferQuota: "राहत महीने चिह्नित: {used} / {max}",
+    bufferQuotaFull: "आप पहले ही {max} राहत महीने चिह्नित कर चुके हैं। दूसरा चुनने के लिए एक हटाएँ।",
+    skipMonthInfo: "यह महीना राहत चिह्नित है — ₹0 देय, और ब्याज नहीं लगता।",
+    skipRequested: "राहत महीना — ₹0। बाकी भुगतान महीने शेष योग उठाते हैं।",
+    stdEmi: "सामान्य किस्त (अगर अवधि के हर महीने बराबर)",
+    targetTotal: "कैलेंडर में चुकाने का कुल योग",
+    flexHint:
+      "उदाहरण: अगर बराबर हिस्सा ₹2,314 है और आप इस महीने ₹314 देते हैं, तो बाकी ₹2,000 अन्य भुगतान महीनों में बँट जाता है।",
     thisMonth: "चुना हुआ महीना",
-    resetMonths: "सभी महीने सामान्य किस्त पर लाएँ",
-    lockHint: "बदला गया",
-    gapOver: "निर्धारित योग ज़रूरी अवधि की राशि से {n} अधिक है।",
-    gapUnder: "{n} अभी अन्य महीनों में रखना बाकी है (60–140% सीमा में)।",
-    gapOk: "अवधि का योग मेल खाता है। महीने फिर से बाँट सकते हैं।",
+    resetMonths: "सभी महीने के विकल्प रीसेट करें",
+    lockHint: "अपनी राशि लॉक",
+    gapOver: "निर्धारित योग ज़रूरी राशि से {n} अधिक है — किसी लॉक महीने को कम करें।",
+    gapUnder: "{n} अभी अन्य भुगतान महीनों में रखना बाकी है।",
+    gapOk: "भुगतान का योग मेल खाता है। महीने फिर से बाँट सकते हैं।",
     calendarSpan: "कैलेंडर अवधि: {n} महीने",
-    repayCount: "वास्तविक वापसी के {n} महीने",
+    repayCount: "{n}-महीने की वापसी अवधि",
+    customAmount: "इस महीने की राशि",
+    insFeeSlab: "हर 5% कवर स्लैब पर प्रीमियम बदलता है",
+    insFeeSlabNote: "कवर स्लैब {pct}% → प्रीमियम {fee}",
     lenderTitle: "बैंक या एनबीएफसी साझेदार चुनें",
     lenderSub:
       "बैंक या एनबीएफसी से छानें। हर साझेदार पर आरबीआई बैज, दर और शुल्क चुनने से पहले दिखता है।",
@@ -489,17 +711,21 @@ const COPY = {
     trustStructure: "राहत और लचीली किस्त दिखाई",
     trustPartner: "सत्यापित साझेदार चुना",
     trustPrice: "पुष्टि से पहले पूरी कीमत",
-    chatTitle: "इस ऋण के बारे में पूछें",
-    chatPh: "प्रश्न लिखें…",
+    chatTitle: "मुझसे कुछ भी पूछें",
+    chatPh: "अपने शब्दों में पूछें…",
     chatHello:
-      "नमस्ते। राहत अवधि, किस्त, छूटी किस्त, या सुरक्षा के बारे में पूछें। इस प्रोटोटाइप में तैयार उत्तर हैं।",
-    chatTyping: "सोच रहे हैं…",
-    subtitleLabel: "आवाज़ी गाइड (यहाँ लिखा भी है)",
+      "नमस्ते — मैं मदद के लिए हूँ। राहत महीने, लचीली किस्त, छूटी किस्त, या सुरक्षा पूछें। छोटे, साफ़ जवाब मिलेंगे।",
+    chatTyping: "एक पल…",
+    chatSuggestBuffer: "राहत महीने कैसे काम करते हैं?",
+    chatSuggestEmi: "क्या एक महीने कम दे सकते हैं?",
+    chatSuggestProtect: "सुरक्षा क्या कवर करती है?",
+    subtitleLabel: "आपकी गाइड कह रही है",
     prototype: "प्रोटोटाइप · काल्पनिक साझेदार · वास्तविक ऋण प्रस्ताव नहीं",
     month: "महीना {n}",
-    skipMonth: "छोड़ें",
+    skipMonth: "राहत",
     repayMonth: "भुगतान",
     waitMonth: "इंतज़ार",
+    userSkipMonth: "छोड़ें",
     flexBand: "इस महीने आपकी सीमा",
     years2: "{n} महीने की वापसी",
     plusBuffer: "+ {n} राहत महीने",
@@ -526,6 +752,165 @@ function inr(n: number): string {
   }).format(Math.round(n));
 }
 
+const EN_ONES = [
+  "",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+];
+const EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+const HI_ONES = [
+  "",
+  "एक",
+  "दो",
+  "तीन",
+  "चार",
+  "पाँच",
+  "छह",
+  "सात",
+  "आठ",
+  "नौ",
+  "दस",
+  "ग्यारह",
+  "बारह",
+  "तेरह",
+  "चौदह",
+  "पंद्रह",
+  "सोलह",
+  "सत्रह",
+  "अठारह",
+  "उन्नीस",
+];
+const HI_TENS = [
+  "",
+  "",
+  "बीस",
+  "तीस",
+  "चालीस",
+  "पचास",
+  "साठ",
+  "सत्तर",
+  "अस्सी",
+  "नब्बे",
+];
+const HI_COMPOUND: Record<number, string> = {
+  21: "इक्कीस",
+  22: "बाईस",
+  23: "तेइस",
+  24: "चौबीस",
+  25: "पच्चीस",
+  26: "छब्बीस",
+  27: "सत्ताईस",
+  28: "अट्ठाईस",
+  29: "उनतीस",
+  31: "इकतीस",
+  32: "बत्तीस",
+  35: "पैंतीस",
+  40: "चालीस",
+  45: "पैंतालीस",
+  50: "पचास",
+  75: "पचहत्तर",
+  99: "निन्यानवे",
+};
+
+/** Convert an integer to English words (Indian numbering: thousand / lakh). */
+function numberToWordsEn(n: number): string {
+  const num = Math.round(Math.abs(n));
+  if (num === 0) return "zero";
+  if (num < 20) return EN_ONES[num];
+  if (num < 100) {
+    const t = Math.floor(num / 10);
+    const o = num % 10;
+    return o ? `${EN_TENS[t]} ${EN_ONES[o]}` : EN_TENS[t];
+  }
+  if (num < 1000) {
+    const h = Math.floor(num / 100);
+    const rest = num % 100;
+    return rest ? `${EN_ONES[h]} hundred ${numberToWordsEn(rest)}` : `${EN_ONES[h]} hundred`;
+  }
+  if (num < 100_000) {
+    const th = Math.floor(num / 1000);
+    const rest = num % 1000;
+    const head = `${numberToWordsEn(th)} thousand`;
+    return rest ? `${head} ${numberToWordsEn(rest)}` : head;
+  }
+  const lakh = Math.floor(num / 100_000);
+  const rest = num % 100_000;
+  const head = `${numberToWordsEn(lakh)} lakh`;
+  return rest ? `${head} ${numberToWordsEn(rest)}` : head;
+}
+
+/** Convert an integer to Hindi words (Indian numbering: हज़ार / लाख). */
+function numberToWordsHi(n: number): string {
+  const num = Math.round(Math.abs(n));
+  if (num === 0) return "शून्य";
+  if (HI_COMPOUND[num]) return HI_COMPOUND[num];
+  if (num < 20) return HI_ONES[num];
+  if (num < 100) {
+    const t = Math.floor(num / 10);
+    const o = num % 10;
+    if (!o) return HI_TENS[t];
+    if (HI_COMPOUND[num]) return HI_COMPOUND[num];
+    return `${HI_TENS[t]} ${HI_ONES[o]}`;
+  }
+  if (num < 1000) {
+    const h = Math.floor(num / 100);
+    const rest = num % 100;
+    const hundredWord = h === 1 ? "एक सौ" : `${HI_ONES[h]} सौ`;
+    return rest ? `${hundredWord} ${numberToWordsHi(rest)}` : hundredWord;
+  }
+  if (num < 100_000) {
+    const th = Math.floor(num / 1000);
+    const rest = num % 1000;
+    const head = th === 1 ? "एक हज़ार" : `${numberToWordsHi(th)} हज़ार`;
+    return rest ? `${head} ${numberToWordsHi(rest)}` : head;
+  }
+  const lakh = Math.floor(num / 100_000);
+  const rest = num % 100_000;
+  const head = lakh === 1 ? "एक लाख" : `${numberToWordsHi(lakh)} लाख`;
+  return rest ? `${head} ${numberToWordsHi(rest)}` : head;
+}
+
+function numberToWords(n: number, lang: Lang): string {
+  return lang === "hi" ? numberToWordsHi(n) : numberToWordsEn(n);
+}
+
+/** Speakable rupee amount, e.g. "twenty five thousand rupees" / "पच्चीस हज़ार रुपये". */
+function amountToSpeech(n: number, lang: Lang): string {
+  const words = numberToWords(n, lang);
+  return lang === "hi" ? `${words} रुपये` : `${words} rupees`;
+}
+
+/** Replace ₹ / Rs amounts in a string with natural spoken words before TTS. */
+function rupeeAmountsToSpeech(text: string, lang: Lang): string {
+  return text
+    .replace(/₹\s*([\d,]+(?:\.\d+)?)/g, (_m, raw: string) => {
+      const n = Number(String(raw).replace(/,/g, ""));
+      return Number.isFinite(n) ? amountToSpeech(n, lang) : _m;
+    })
+    .replace(/\bRs\.?\s*([\d,]+(?:\.\d+)?)/gi, (_m, raw: string) => {
+      const n = Number(String(raw).replace(/,/g, ""));
+      return Number.isFinite(n) ? amountToSpeech(n, lang) : _m;
+    });
+}
+
 function monthlyRate(annualPct: number): number {
   return annualPct / 12 / 100;
 }
@@ -546,93 +931,106 @@ function bufferInterestIfCharged(principal: number, annualPct: number, bufferMon
   return Math.round(principal * monthlyRate(annualPct) * bufferMonths);
 }
 
+/** Snap cover % to the nearest 5% slab between 25 and 50. */
+function coverSlab(coverPct: number): number {
+  const snapped = Math.round(coverPct / 5) * 5;
+  return Math.min(50, Math.max(25, snapped));
+}
+
+/**
+ * One-time protection fee by 5% cover slabs.
+ * Each step from 25% → 50% raises the premium (no flat floor that hides changes).
+ */
 function protectionFee(principal: number, coverPct: number): number {
-  const pct = 0.006 + ((coverPct - 25) / 25) * 0.008;
-  return Math.round(principal * pct);
+  const slab = coverSlab(coverPct);
+  const steps = (slab - 25) / 5; // 0 … 5
+  // 2.2% of principal at 25% cover, +0.8% of principal per +5% cover
+  const rate = 0.022 + steps * 0.008;
+  // Extra fixed step so small loans still change by at least ₹100 per slab
+  const fixedStep = 100;
+  return Math.max(199, Math.round(principal * rate) + steps * fixedStep);
 }
 
-type CalMonth = { kind: "buffer" | "skip" | "repay"; repayIndex: number | null; calIndex: number };
-
-function buildCalendar(repayMonths: number, bufferMonths: number, mode: BufferMode): CalMonth[] {
-  if (mode === "before") {
-    const wait: CalMonth[] = Array.from({ length: bufferMonths }, (_, i) => ({
-      kind: "buffer" as const,
-      repayIndex: null,
-      calIndex: i,
-    }));
-    const repay: CalMonth[] = Array.from({ length: repayMonths }, (_, i) => ({
-      kind: "repay" as const,
-      repayIndex: i,
-      calIndex: bufferMonths + i,
-    }));
-    return [...wait, ...repay];
-  }
-  const total = repayMonths + bufferMonths;
-  const kinds: ("skip" | "repay")[] = Array(total).fill("repay");
-  const used = new Set<number>();
-  for (let i = 0; i < bufferMonths; i++) {
-    let idx = Math.min(total - 1, Math.floor(((i + 0.5) * total) / bufferMonths));
-    while (used.has(idx) && idx < total - 1) idx += 1;
-    if (used.has(idx)) {
-      idx = kinds.findIndex((k, j) => k === "repay" && !used.has(j));
-    }
-    if (idx >= 0) {
-      kinds[idx] = "skip";
-      used.add(idx);
-    }
-  }
-  let repayIndex = 0;
-  return kinds.map((kind, calIndex) => {
-    if (kind === "skip") return { kind, repayIndex: null, calIndex };
-    const row: CalMonth = { kind: "repay", repayIndex, calIndex };
-    repayIndex += 1;
-    return row;
-  });
-}
-
-function rebalance(
+/** Spread target repayment across calendar months; buffer months stay ₹0. */
+function rebalanceCalendar(
+  calendarLen: number,
+  bufferMarks: Record<number, boolean>,
   overrides: Record<number, number>,
-  std: number,
-  minEmi: number,
-  maxEmi: number,
   target: number,
-  repayMonths: number,
 ): { amounts: number[]; gap: number } {
-  const amounts = Array.from({ length: repayMonths }, () => std);
+  const amounts = Array.from({ length: calendarLen }, () => 0);
+  const buffers = new Set(
+    Object.keys(bufferMarks)
+      .map(Number)
+      .filter((i) => bufferMarks[i] && i >= 0 && i < calendarLen),
+  );
+  for (const i of buffers) amounts[i] = 0;
+
   const locked = Object.keys(overrides)
     .map(Number)
-    .filter((i) => i >= 0 && i < repayMonths);
+    .filter((i) => i >= 0 && i < calendarLen && !buffers.has(i));
   let lockedSum = 0;
   for (const i of locked) {
-    amounts[i] = Math.min(maxEmi, Math.max(minEmi, Math.round(overrides[i])));
+    amounts[i] = Math.max(0, Math.round(overrides[i]));
     lockedSum += amounts[i];
   }
-  const unlocked = Array.from({ length: repayMonths }, (_, i) => i).filter((i) => !locked.includes(i));
+
+  const unlocked = Array.from({ length: calendarLen }, (_, i) => i).filter(
+    (i) => !buffers.has(i) && !locked.includes(i),
+  );
   if (unlocked.length === 0) {
     const sum = amounts.reduce((a, b) => a + b, 0);
     return { amounts, gap: target - sum };
   }
-  let each = Math.round((target - lockedSum) / unlocked.length);
-  each = Math.min(maxEmi, Math.max(minEmi, each));
+
+  const remaining = target - lockedSum;
+  if (remaining <= 0) {
+    for (const i of unlocked) amounts[i] = 0;
+    const sum = amounts.reduce((a, b) => a + b, 0);
+    return { amounts, gap: target - sum };
+  }
+
+  const each = Math.max(0, Math.round(remaining / unlocked.length));
   for (const i of unlocked) amounts[i] = each;
   const sum = amounts.reduce((a, b) => a + b, 0);
   const last = unlocked[unlocked.length - 1];
-  const adjusted = Math.min(maxEmi, Math.max(minEmi, amounts[last] + (target - sum)));
-  amounts[last] = adjusted;
+  amounts[last] = Math.max(0, amounts[last] + (target - sum));
   const finalSum = amounts.reduce((a, b) => a + b, 0);
   return { amounts, gap: target - finalSum };
+}
+
+function countBufferMarks(bufferMarks: Record<number, boolean>, calendarLen: number): number {
+  return Object.keys(bufferMarks)
+    .map(Number)
+    .filter((i) => bufferMarks[i] && i >= 0 && i < calendarLen).length;
+}
+
+/** Keep at most `maxBuffers` buffer marks when the allowance shrinks. */
+function trimBufferMarks(
+  bufferMarks: Record<number, boolean>,
+  calendarLen: number,
+  maxBuffers: number,
+): Record<number, boolean> {
+  const kept = Object.keys(bufferMarks)
+    .map(Number)
+    .filter((i) => bufferMarks[i] && i >= 0 && i < calendarLen)
+    .sort((a, b) => a - b)
+    .slice(0, maxBuffers);
+  const next: Record<number, boolean> = {};
+  for (const i of kept) next[i] = true;
+  return next;
 }
 
 const FAQS: { keys: string[]; en: string; hi: string }[] = [
   {
     keys: ["miss", "late", "skip payment", "default", "नहीं दे", "चूक", "लेट", "किस्त नहीं", "भूल"],
-    en: "If a month is hard, use a skip-eligible buffer month or pay as low as 60% of the standard instalment. A missed payment by choice is not a covered protection event. Talk to your partner early — there is no hidden late-fee in this prototype schedule.",
-    hi: "अगर महीना कठिन हो, तो छोड़ने योग्य राहत महीना इस्तेमाल करें या सामान्य किस्त का कम-से-कम 60% दें। जानबूझकर छूटी किस्त सुरक्षा कवर में नहीं आती। साझेदार से जल्दी बात करें — इस प्रोटोटाइप में छिपा लेट-फीस शेड्यूल नहीं है।",
+    en: "If a month is hard, mark it as a buffer month (within your 6 or 12 allowance) for ₹0 due, or set any lower custom instalment — the rest is redistributed to other payment months. A missed payment by choice is not a covered protection event. Talk to your partner early — there is no hidden late-fee in this prototype schedule.",
+    hi: "अगर महीना कठिन हो, तो उसे राहत महीना चिह्नित करें (6 या 12 की सीमा में) — ₹0 देय — या कोई भी कम किस्त तय करें; बाकी राशि अन्य भुगतान महीनों में बँट जाती है। जानबूझकर छूटी किस्त सुरक्षा कवर में नहीं आती। साझेदार से जल्दी बात करें — इस प्रोटोटाइप में छिपा लेट-फीस शेड्यूल नहीं है।",
   },
   {
     keys: ["buffer", "skip", "wait", "राहत", "बफर", "छोड़"],
-    en: "You get 6 or 12 extra buffer months on top of your chosen repayment tenure (6, 12, 24, or 36). Place them before repayment starts, or as skip months inside the calendar. Interest is not charged on buffer months.",
-    hi: "चुनी हुई वापसी अवधि (6, 12, 24, या 36) के अलावा 6 या 12 राहत महीने मिलते हैं। इन्हें शुरुआत में इंतज़ार के रूप में रखें, या कैलेंडर में छोड़ने योग्य महीने बनाएँ। राहत महीनों पर ब्याज नहीं लगता।",
+    en: "Your calendar is repayment tenure plus buffer slots (for example 24 + 6 = 30 months). You choose which months are buffer — up to 6 or 12. Buffer months are ₹0 with no interest. On other months set any EMI you need; leftovers move so the full total is still paid. Change buffer or EMI 2–3 days before that month’s due date.",
+    hi: "कैलेंडर = वापसी अवधि + राहत स्लॉट (जैसे 24 + 6 = 30 महीने)। आप चुनते हैं कौन से महीने राहत हैं — अधिकतम 6 या 12। राहत पर ₹0 और बिना ब्याज। बाकी महीनों पर अपनी किस्त तय करें; बाकी राशि बँटती है ताकि पूरा योग चुकता रहे। बदलाव देय तिथि से 2–3 दिन पहले करें।",
   },
   {
     keys: ["interest", "byaj", "ब्याज", "interest-free", "free buffer"],
@@ -641,13 +1039,13 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
   },
   {
     keys: ["emi", "flex", "instal", "install", "60", "140", "income", "किस्त", "लची"],
-    en: "There is no rigid equal EMI. Each repayment month can be between 60% and 140% of the standard instalment, as long as the full tenure together repays the total. Raise a good month, lower a lean month.",
-    hi: "कड़ी समान EMI नहीं है। हर भुगतान महीना सामान्य किस्त के 60% से 140% के बीच हो सकता है, बशर्ते पूरी अवधि का योग पूरा चुकता हो। अच्छे महीने अधिक, कम कमाई वाले महीने कम।",
+    en: "There is no hard EMI band. On any payment month you can set the amount you need — even much lower than the equal share. Whatever you do not pay that month is redistributed across the other payment months so the full calendar total is still cleared.",
+    hi: "किस्त की कोई कड़ी सीमा नहीं। किसी भी भुगतान महीने पर अपनी ज़रूरत की राशि तय करें — बराबर हिस्से से बहुत कम भी। जो इस महीने नहीं देते, वह अन्य भुगतान महीनों में बँट जाता है ताकि कैलेंडर का पूरा योग चुकता रहे।",
   },
   {
     keys: ["insur", "protect", "cover", "illness", "crop fail", "flood", "drought", "सुरक्षा", "बीमा", "फसल", "बीमार"],
-    en: "Protection is optional and off by default. If you add it, you choose 25–50% of the outstanding amount to be covered after a defined hardship: crop failure from flood or drought, serious illness, or loss of main income. The one-time fee is listed before you confirm.",
-    hi: "सुरक्षा वैकल्पिक है और डिफ़ॉल्ट रूप से बंद है। जोड़ने पर आप बकाया राशि का 25–50% कवर चुनते हैं — बाढ़/सूखे से फसल नुकसान, गंभीर बीमारी, या मुख्य कमाई जाना। एक बार का शुल्क पुष्टि से पहले दिखता है।",
+    en: "Protection is optional and off by default. Cover is chosen in 5% slabs from 25% to 50% of the outstanding amount. The one-time premium changes at every slab. Covered hardships include crop failure from flood or drought, serious illness, or loss of main income.",
+    hi: "सुरक्षा वैकल्पिक है और डिफ़ॉल्ट रूप से बंद है। कवर 25% से 50% तक हर 5% स्लैब में चुना जाता है। हर स्लैब पर एक बार का प्रीमियम बदलता है। कवर में बाढ़/सूखे से फसल नुकसान, गंभीर बीमारी, या मुख्य कमाई जाना शामिल है।",
   },
   {
     keys: ["cancel", "undo", "exit", "quit", "रद्द", "वापस", "छोड़ दो"],
@@ -674,16 +1072,38 @@ const FAQS: { keys: string[]; en: string; hi: string }[] = [
     en: "You can filter partners by Bank or NBFC. Every listed partner shows an RBI Registered or RBI Licensed badge with rate and processing fee before you choose.",
     hi: "आप साझेदारों को बैंक या एनबीएफसी से छान सकते हैं। हर सूचीबद्ध साझेदार पर आरबीआई बैज, दर और प्रोसेसिंग शुल्क चुनने से पहले दिखता है।",
   },
+  {
+    keys: ["trust score", "trust profile", "ट्रस्ट", "विश्वास स्कोर", "प्रोफ़ाइल", "score"],
+    en: "Your Trust Score (0–100) is built from everyday signals you choose — UPI consistency, utility bills, gig ratings, mandi sales, SHG savings, community vouching, and optional bank or collateral info. Each toggle shows exactly how many points it adds. Nothing is a black box.",
+    hi: "आपका ट्रस्ट स्कोर (0–100) उन रोज़मर्रा संकेतों से बनता है जो आप चुनते हैं — UPI नियमितता, बिल, गिग रेटिंग, मंडी बिक्री, एसएचजी बचत, समुदाय की सिफ़ारिश, और वैकल्पिक बैंक या जमानत। हर टॉगल बताता है कितने अंक जुड़ते हैं। कोई ब्लैक-बॉक्स नहीं।",
+  },
+  {
+    keys: ["bank statement", "mandatory", "required", "paperwork", "स्टेटमेंट", "ज़रूरी", "कागज़", "mandatory bank"],
+    en: "A bank statement is helpful but never mandatory here. Many reliable people have irregular cash or digital income without thick paperwork. Multiple smaller signals can add up to the same trust as one formal document.",
+    hi: "बैंक स्टेटमेंट मददगार है, पर यहाँ कभी अनिवार्य नहीं। कई भरोसेमंद लोगों के पास मोटा कागज़ी इतिहास नहीं होता। कई छोटे संकेत मिलकर एक औपचारिक दस्तावेज़ जितना विश्वास बना सकते हैं।",
+  },
+  {
+    keys: ["vouch", "vouching", "community", " guarantor", "सिफ़ारिश", "वouch", "परिचित", "समुदाय"],
+    en: "Community vouching means a known contact who has already repaid a BharosaLoan is willing to support your application. It adds a modest number of points and is optional — never a pressure on friends or family.",
+    hi: "समुदाय की सिफ़ारिश का मतलब है कोई परिचित जिसने पहले भरोसालोन चुकाया हो, आपके आवेदन का समर्थन करे। इससे मामूली अंक जुड़ते हैं और यह वैकल्पिक है — दोस्तों या परिवार पर दबाव नहीं।",
+  },
 ];
 
 function matchFaq(q: string, lang: Lang): string {
   const lower = q.toLowerCase();
+  let best: { row: (typeof FAQS)[number]; len: number } | null = null;
   for (const row of FAQS) {
-    if (row.keys.some((k) => lower.includes(k.toLowerCase()))) return row[lang];
+    for (const k of row.keys) {
+      const key = k.toLowerCase();
+      if (lower.includes(key) && (!best || key.length > best.len)) {
+        best = { row, len: key.length };
+      }
+    }
   }
+  if (best) return best.row[lang];
   return lang === "hi"
-    ? "मैं राहत अवधि, किस्त, छूटी किस्त, सुरक्षा, शुल्क, या आरबीआई बैज के बारे में बता सकता/सकती हूँ। थोड़े अलग शब्द आज़माएँ।"
-    : "I can explain the buffer, instalments, missed payments, protection, fees, or RBI badges. Try a few different words.";
+    ? "कोई बात नहीं — थोड़े अलग शब्द आज़माएँ। राहत महीने, किस्त, ट्रस्ट स्कोर, सुरक्षा, या आरबीआई बैज पूछ सकते हैं।"
+    : "No worries — try a few different words. You can ask about buffer months, EMI, Trust Score, protection, or RBI badges.";
 }
 
 function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
@@ -691,14 +1111,33 @@ function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
   const all = window.speechSynthesis.getVoices();
   if (!all.length) return null;
   const want = lang === "hi" ? "hi" : "en";
+  const femaleHint = /female|woman|zira|samantha|google.*हिन्दी|google.*hindi|lekha|neerja|heera/i;
+  const langMatch = all.filter(
+    (v) =>
+      v.lang.toLowerCase() === `${want}-in` ||
+      v.lang.toLowerCase().startsWith(`${want}-`) ||
+      v.lang.toLowerCase().startsWith(want) ||
+      v.name.toLowerCase().includes(want === "hi" ? "hindi" : "english"),
+  );
   return (
-    all.find((v) => v.lang.toLowerCase() === `${want}-in`) ||
-    all.find((v) => v.lang.toLowerCase().startsWith(`${want}-`)) ||
-    all.find((v) => v.lang.toLowerCase().startsWith(want)) ||
-    all.find((v) => v.name.toLowerCase().includes(want === "hi" ? "hindi" : "english")) ||
+    langMatch.find((v) => femaleHint.test(v.name)) ||
+    langMatch[0] ||
+    all.find((v) => femaleHint.test(v.name)) ||
     all[0] ||
     null
   );
+}
+
+/** Soften TTS rhythm — short pauses after sentences and friendly connectors. */
+function humanizeSpeech(text: string, lang: Lang): string {
+  let s = text.trim();
+  // Give the engine breathing room between ideas.
+  s = s.replace(/\s*—\s*/g, lang === "hi" ? "… " : ", ");
+  s = s.replace(/\.\s+/g, ". … ");
+  s = s.replace(/\?\s+/g, "? … ");
+  s = s.replace(/!\s+/g, "! … ");
+  s = s.replace(/\s{2,}/g, " ");
+  return s;
 }
 
 function speak(
@@ -714,10 +1153,13 @@ function speak(
     window.speechSynthesis.cancel();
     // Chrome sometimes stays paused after cancel — nudge it.
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-    const u = new SpeechSynthesisUtterance(text);
+    // Never let TTS read ₹25,000 digit-by-digit — convert to natural words.
+    const spoken = humanizeSpeech(rupeeAmountsToSpeech(text, lang), lang);
+    const u = new SpeechSynthesisUtterance(spoken);
     u.lang = lang === "hi" ? "hi-IN" : "en-IN";
-    u.rate = 0.92;
-    u.pitch = 1;
+    // Slightly slower + warmer than default — feels more like a person guiding you.
+    u.rate = lang === "hi" ? 0.9 : 0.88;
+    u.pitch = 1.06;
     u.volume = 1;
     const v = pickVoice(lang);
     if (v) u.voice = v;
@@ -745,22 +1187,37 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const [step, setStep] = useState<Step>("language");
   const [muted, setMuted] = useState(false);
   const [subtitle, setSubtitle] = useState(
-    "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.",
+    "Hi there. I’m your Bharosa guide. Tap English or Hindi — I’ll walk with you in plain words.",
   );
+  const [stepAnimKey, setStepAnimKey] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [amount, setAmount] = useState(50_000);
   const [repayMonths, setRepayMonths] = useState<TenureMonths>(24);
   const [purpose, setPurpose] = useState<PurposeId>("crop");
   const [income, setIncome] = useState<IncomeId>("seasonal");
+  const [trustSignals, setTrustSignals] = useState<Record<TrustSignalId, boolean>>({
+    bank: false,
+    collateral: false,
+    upi: false,
+    utility: false,
+    gig: false,
+    mandi: false,
+    shg: false,
+    vouch: false,
+  });
+  const [collateralNote, setCollateralNote] = useState("");
+  const [displayScore, setDisplayScore] = useState(0);
   const [bufferMonths, setBufferMonths] = useState<6 | 12>(6);
-  const [bufferMode, setBufferMode] = useState<BufferMode>("before");
   const [lenderId, setLenderId] = useState<string | null>(null);
   const [lenderFilter, setLenderFilter] = useState<"all" | "bank" | "nbfc">("all");
   const [wantInsurance, setWantInsurance] = useState(false);
   const [coverPct, setCoverPct] = useState(25);
+  /** calIndex → locked custom EMI amount */
   const [overrides, setOverrides] = useState<Record<number, number>>({});
-  const [selectedRepay, setSelectedRepay] = useState(0);
+  /** calIndex → user marked this month as buffer (₹0) */
+  const [bufferMarks, setBufferMarks] = useState<Record<number, boolean>>({});
+  const [selectedCal, setSelectedCal] = useState(0);
   const [ack, setAck] = useState(false);
   const [undone, setUndone] = useState(false);
   const [waitSkipped, setWaitSkipped] = useState(false);
@@ -774,24 +1231,33 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   const L = (lang ?? "en") as Lang;
 
   const unlockedTenures = useMemo(() => availableTenures(amount), [amount]);
+  const trustScore = useMemo(
+    () => TRUST_SIGNALS.reduce((sum, s) => sum + (trustSignals[s.id] ? s.weight : 0), 0),
+    [trustSignals],
+  );
+  const rateDiscount = trustRateDiscount(trustScore);
+  const skipExtraVerify = trustSkipsExtraVerification(trustScore);
+  const trustBand =
+    trustScore >= 70 ? t(L, "trustBandHigh") : trustScore >= 40 ? t(L, "trustBandMid") : t(L, "trustBandLow");
   const lender = LENDERS.find((x) => x.id === lenderId) ?? null;
-  const rate = lender?.rate ?? LENDERS[0].rate;
+  const baseRate = lender?.rate ?? LENDERS[0].rate;
+  const rate = Math.round((baseRate - rateDiscount) * 100) / 100;
   const emi = standardEmi(amount, rate, repayMonths);
-  const minEmi = Math.round(emi * MIN_EMI_RATIO);
-  const maxEmi = Math.round(emi * MAX_EMI_RATIO);
   const interestTotal = totalInterest(amount, emi, repayMonths);
   const bufferIfCharged = bufferInterestIfCharged(amount, rate, bufferMonths);
   const proc = lender?.processingFee ?? 0;
-  const prot = wantInsurance ? protectionFee(amount, coverPct) : 0;
+  const activeCover = coverSlab(coverPct);
+  const prot = wantInsurance ? protectionFee(amount, activeCover) : 0;
   const targetPay = emi * repayMonths;
+  const calendarLen = repayMonths + bufferMonths;
   const { amounts, gap } = useMemo(
-    () => rebalance(overrides, emi, minEmi, maxEmi, targetPay, repayMonths),
-    [overrides, emi, minEmi, maxEmi, targetPay, repayMonths],
+    () => rebalanceCalendar(calendarLen, bufferMarks, overrides, targetPay),
+    [calendarLen, bufferMarks, overrides, targetPay],
   );
-  const calendar = useMemo(
-    () => buildCalendar(repayMonths, bufferMonths, bufferMode),
-    [repayMonths, bufferMonths, bufferMode],
-  );
+  const bufferUsed = countBufferMarks(bufferMarks, calendarLen);
+  const selectedIsBuffer = !!bufferMarks[selectedCal];
+  const selectedLocked = overrides[selectedCal] !== undefined;
+  const barMax = Math.max(emi, ...amounts, 1);
   const grand = amount + interestTotal + proc + prot;
   const filteredLenders = useMemo(
     () =>
@@ -808,15 +1274,53 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     if (!unlockedTenures.includes(repayMonths)) {
       setRepayMonths(unlockedTenures[unlockedTenures.length - 1]);
       setOverrides({});
-      setSelectedRepay(0);
+      setBufferMarks({});
+      setSelectedCal(0);
     }
   }, [unlockedTenures, repayMonths]);
+
+  // Keep selected index in range; trim buffer marks if allowance/length shrinks.
+  useEffect(() => {
+    if (selectedCal >= calendarLen) setSelectedCal(0);
+    setBufferMarks((prev) => {
+      const trimmed = trimBufferMarks(prev, calendarLen, bufferMonths);
+      const prevKeys = Object.keys(prev).sort().join(",");
+      const nextKeys = Object.keys(trimmed).sort().join(",");
+      return prevKeys === nextKeys ? prev : trimmed;
+    });
+    setOverrides((prev) => {
+      let changed = false;
+      const next: Record<number, number> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const i = Number(k);
+        if (i >= 0 && i < calendarLen) next[i] = v;
+        else changed = true;
+      }
+      if (!changed && Object.keys(next).length === Object.keys(prev).length) return prev;
+      return next;
+    });
+  }, [calendarLen, bufferMonths, selectedCal]);
+
+  // Animate the displayed Trust Score toward the real total.
+  useEffect(() => {
+    if (displayScore === trustScore) return;
+    const dir = trustScore > displayScore ? 1 : -1;
+    const id = window.setTimeout(() => {
+      setDisplayScore((s) => {
+        const next = s + dir * Math.max(1, Math.ceil(Math.abs(trustScore - s) / 6));
+        if ((dir > 0 && next >= trustScore) || (dir < 0 && next <= trustScore)) return trustScore;
+        return next;
+      });
+    }, 28);
+    return () => clearTimeout(id);
+  }, [trustScore, displayScore]);
 
   const trust = [
     { id: "rbi", label: t(L, "trustRbi"), on: true },
     { id: "exit", label: t(L, "trustExit"), on: true },
     { id: "lang", label: t(L, "trustLang"), on: !!lang },
-    { id: "details", label: t(L, "trustDetails"), on: reached("structure") },
+    { id: "details", label: t(L, "trustDetails"), on: reached("trust") },
+    { id: "trustProfile", label: t(L, "trustChecklistItem"), on: reached("structure") },
     { id: "structure", label: t(L, "trustStructure"), on: reached("lender") },
     { id: "partner", label: t(L, "trustPartner"), on: !!lenderId },
     { id: "price", label: t(L, "trustPrice"), on: reached("review") },
@@ -826,73 +1330,90 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     const g = lang ?? "en";
     if (step === "language") {
       return g === "hi"
-        ? "भरोसालोन में आपका स्वागत है। कृपया अंग्रेज़ी या हिन्दी चुनें। आवाज़ी गाइड हर बात को स्क्रीन पर भी लिखेगी।"
-        : "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.";
+        ? "नमस्ते। मैं आपकी भरोसा गाइड हूँ। अंग्रेज़ी या हिन्दी पर टैप करें — मैं उसी भाषा में आसान शब्दों में साथ चलूँगी।"
+        : "Hi there. I’m your Bharosa guide. Tap English or Hindi — I’ll walk with you in plain words, and you’ll see everything on screen too.";
     }
     if (step === "basics") {
       return g === "hi"
-        ? `ऋण राशि चुनें, उद्देश्य बताएँ, और कमाई कैसे आती है। अभी राशि ${inr(amount)} है।`
-        : `Choose a loan amount, a purpose, and how income usually arrives. Amount is currently ${inr(amount)}.`;
+        ? `चलिए शुरू करें। कितनी राशि चाहिए, किस काम के लिए, और कमाई कैसे आती है — बस इतना चुनें। अभी राशि ${inr(amount)} है। जब तैयार हों, आगे बढ़ें।`
+        : `Let’s begin. Pick how much you need, what it’s for, and how money usually arrives. Right now that’s ${inr(amount)}. When it feels right, tap continue.`;
+    }
+    if (step === "trust") {
+      const active = TRUST_SIGNALS.filter((s) => trustSignals[s.id]).length;
+      if (active === 0) {
+        return g === "hi"
+          ? "यह आपकी विश्वास प्रोफ़ाइल है। बैंक स्टेटमेंट ज़रूरी नहीं। जो सच में लागू हो, उसे चालू करें — स्कोर धीरे-धीरे बनेगा, और दर बेहतर हो सकती है।"
+          : "This is your Trust Profile. No bank statement required. Toggle what truly fits you — your score will grow gently, and it can help your rate.";
+      }
+      return g === "hi"
+        ? `अच्छा। आपका ट्रस्ट स्कोर अभी ${trustScore} में से 100 है। ${active} संकेत चालू हैं। और जोड़ना हो तो जोड़ें, नहीं तो आगे बढ़ सकते हैं।`
+        : `Nice. Your Trust Score is ${trustScore} out of 100, with ${active} signals on. Add more if you like — or continue when you’re ready.`;
     }
     if (step === "structure") {
       return g === "hi"
-        ? `वापसी ${repayMonths} महीने की है। ${bufferMonths} महीने की राहत पर ब्याज शून्य है। ब्याज ${inr(interestTotal)} है। अगर राहत पर ब्याज लगता तो अतिरिक्त ${inr(bufferIfCharged)} जुड़ता — वह नहीं लगता। किस्त ${inr(emi)} के 60 से 140 प्रतिशत के बीच लचीली है।`
-        : `You repay for ${repayMonths} months. Your ${bufferMonths}-month buffer has zero interest. Interest is ${inr(interestTotal)}. If the buffer were charged, an extra ${inr(bufferIfCharged)} would be added — it is not. Instalments can move between 60 and 140 percent of ${inr(emi)}.`;
+        ? `यहाँ वापसी आसान रखी गई है। ${calendarLen} महीनों का कैलेंडर है। अधिकतम ${bufferMonths} महीने राहत चिह्नित कर सकते हैं। बाकी पर अपनी किस्त लिखें — कम दें तो बाकी अन्य महीनों में बँट जाएगी। सामान्य हिस्सा लगभग ${inr(emi)} है।`
+        : `Here’s the gentle part. You have a ${calendarLen}-month calendar. Mark up to ${bufferMonths} months as buffer when money is tight. On other months, set any amount you can — leftovers move so the full total is still paid. A typical share is about ${inr(emi)}.`;
     }
     if (step === "lender") {
       return g === "hi"
-        ? "बैंक या एनबीएफसी साझेदार चुनें। हर कार्ड पर आरबीआई बैज, दर और प्रोसेसिंग शुल्क पहले से लिखा है।"
-        : "Choose a Bank or NBFC partner. Each card lists the RBI badge, rate, and processing fee before you select.";
+        ? `अब एक भरोसेमंद साझेदार चुनें — बैंक या एनबीएफसी। हर कार्ड पर आरबीआई बैज है।${rateDiscount > 0 ? ` आपके स्कोर से दर लगभग ${rateDiscount} प्रतिशत तक हल्की हो सकती है।` : ""}${skipExtraVerify ? " अतिरिक्त जाँच भी छूट सकती है।" : ""}`
+        : `Now pick a partner you trust — a Bank or NBFC. Every card carries an RBI badge.${rateDiscount > 0 ? ` Your score may soften the rate by about ${rateDiscount} percent.` : ""}${skipExtraVerify ? " An extra check may also be skipped." : ""}`;
     }
     if (step === "insurance") {
       return g === "hi"
         ? wantInsurance
-          ? `सुरक्षा चालू है। कवर बकाया का ${coverPct} प्रतिशत है। एक बार का शुल्क ${inr(prot)} है। यह वैकल्पिक है।`
-          : "सुरक्षा वैकल्पिक है और अभी बंद है। आप 25 से 50 प्रतिशत कवर चुन सकते हैं। कोई छिपी शर्त नहीं।"
+          ? `सुरक्षा चालू है — पूरी तरह वैकल्पिक। कवर ${activeCover} प्रतिशत है, और एक बार का प्रीमियम ${inr(prot)} है। हर पाँच प्रतिशत पर प्रीमियम बदलता है।`
+          : "सुरक्षा वैकल्पिक है। चाहें तो जोड़ें, नहीं तो छोड़कर आगे बढ़ें। कोई दबाव नहीं।"
         : wantInsurance
-          ? `Protection is on. Cover is ${coverPct} percent of the outstanding amount. The one-time fee is ${inr(prot)}. This remains optional.`
-          : "Protection is optional and currently off. You may choose 25 to 50 percent cover. No hidden terms.";
+          ? `Protection is on — still optional. Cover is ${activeCover} percent, and the one-time premium is ${inr(prot)}. It changes every five percent step.`
+          : "Protection is optional. Add it if you want a safety net — or skip and continue. No pressure either way.";
     }
     if (step === "review") {
       return g === "hi"
-        ? `आपको ${inr(amount)} मिलते हैं। ${repayMonths} महीने का ब्याज ${inr(interestTotal)}। राहत पर ब्याज शून्य। प्रोसेसिंग ${inr(proc)}। सुरक्षा शुल्क ${wantInsurance ? inr(prot) : "शून्य"}। कुल चुकाने योग्य ${inr(grand)}। पुष्टि से पहले बॉक्स चुनें।`
-        : `You receive ${inr(amount)}. Interest for ${repayMonths} months is ${inr(interestTotal)}. Buffer interest is zero. Processing fee ${inr(proc)}. Protection fee ${wantInsurance ? inr(prot) : "zero"}. Total to repay ${inr(grand)}. Tick the box before you confirm.`;
+        ? `एक नज़र डाल लें। आपको ${inr(amount)} मिलते हैं। कुल चुकाने योग्य ${inr(grand)} है। राहत पर ब्याज शून्य। जब पढ़ लें, नीचे बॉक्स चुनकर पुष्टि करें।`
+        : `One last look together. You receive ${inr(amount)}. Total to repay is ${inr(grand)}. Buffer months stay interest-free. When you’ve read it, tick the box and confirm.`;
     }
     if (undone) {
       return g === "hi"
-        ? "आवेदन रद्द हो गया। कोई राशि देय नहीं।"
-        : "The application was cancelled. Nothing is due.";
+        ? "हो गया — आवेदन रद्द। कोई राशि देय नहीं। जब चाहें फिर से शुरू कर सकते हैं।"
+        : "All set — application cancelled. Nothing is due. You can start again whenever you like.";
     }
     if (waitSkipped) {
       return g === "hi"
-        ? "प्रतीक्षा छोड़ दी। आवेदन रखा गया। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
-        : "Wait skipped. Application kept. No money is sent in this prototype.";
+        ? "ठीक है, प्रतीक्षा छोड़ दी। आवेदन रखा गया। इस डेमो में असली पैसे नहीं भेजे जाते।"
+        : "Okay — wait skipped. Your application is kept. In this demo, no real money is sent.";
     }
     if (undoLeft <= 0) {
       return g === "hi"
-        ? "आवेदन मिल गया। रद्द करने की 30 सेकंड की खिड़की खत्म हो गई। इस प्रोटोटाइप में पैसे नहीं भेजे गए।"
-        : "Application received. The 30-second cancel window has ended. No money is sent in this prototype.";
+        ? "आवेदन मिल गया। छोटी रद्द खिड़की बंद हो गई। इस डेमो में पैसे नहीं भेजे गए।"
+        : "Application received. The short cancel window has closed. No money is sent in this demo.";
     }
     return g === "hi"
-      ? `आवेदन मिल गया। आप ${undoLeft} सेकंड में रद्द कर सकते हैं, या प्रतीक्षा छोड़ सकते हैं।`
-      : `Application received. You can cancel for ${undoLeft} seconds, or skip the wait.`;
+      ? `आवेदन मिल गया। अगले ${undoLeft} सेकंड में रद्द कर सकते हैं, या प्रतीक्षा छोड़ सकते हैं। आराम से सोचें।`
+      : `Application received. You can cancel in the next ${undoLeft} seconds, or skip the wait. Take a breath — no rush.`;
   }, [
     lang,
     step,
     amount,
     repayMonths,
     bufferMonths,
+    calendarLen,
     interestTotal,
     bufferIfCharged,
     emi,
     wantInsurance,
     coverPct,
+    activeCover,
     prot,
     proc,
     grand,
     undone,
     waitSkipped,
     undoLeft,
+    trustScore,
+    trustSignals,
+    rateDiscount,
+    skipExtraVerify,
   ]);
 
   useEffect(() => {
@@ -983,6 +1504,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
   function go(next: Step) {
     setAck(false);
     setStep(next);
+    setStepAnimKey((k) => k + 1);
   }
 
   function nextStep() {
@@ -993,15 +1515,26 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     if (i < STEPS.length - 1) go(STEPS[i + 1]);
   }
 
-  function chooseLanguage(next: Lang) {
+  function nextLabel(): string {
+    if (step === "insurance" && !wantInsurance) return t(L, "skipIns");
+    if (step === "basics") return t(L, "nextBasics");
+    if (step === "trust") return t(L, "nextTrust");
+    if (step === "structure") return t(L, "nextStructure");
+    if (step === "lender") return t(L, "nextLender");
+    if (step === "insurance") return t(L, "nextInsurance");
+    if (step === "review") return t(L, "nextReview");
+    return t(L, "next");
+  }
+
+  function chooseLanguage(next: Lang, autoAdvance = false) {
     audioUnlocked.current = true;
     setLang(next);
+    const text =
+      next === "hi"
+        ? "बहुत अच्छा। हिन्दी चुनी। चलिए आसान शब्दों में आगे बढ़ते हैं।"
+        : "Lovely. English it is. Let’s move ahead gently, in plain words.";
     // Speak immediately on the user gesture so browsers allow TTS.
     window.setTimeout(() => {
-      const text =
-        next === "hi"
-          ? "भरोसालोन में आपका स्वागत है। कृपया अंग्रेज़ी या हिन्दी चुनें। आवाज़ी गाइड हर बात को स्क्रीन पर भी लिखेगी।"
-          : "Welcome to BharosaLoan. Please choose English or Hindi. Voice guidance is always shown as text on screen as well.";
       setSubtitle(text);
       if (!muted) {
         speak(text, next, {
@@ -1017,6 +1550,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         });
       }
     }, 40);
+    // One tap starts the journey — no extra Continue click on language.
+    if (autoAdvance && step === "language") {
+      window.setTimeout(() => {
+        setStepAnimKey((k) => k + 1);
+        setStep("basics");
+      }, 650);
+    }
   }
 
   function prevStep() {
@@ -1028,9 +1568,10 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     go(STEPS[i - 1]);
   }
 
-  function sendChat() {
-    const q = chatInput.trim();
+  function sendChat(preset?: string) {
+    const q = (preset ?? chatInput).trim();
     if (!q || chatBusy) return;
+    setChatOpen(true);
     const id = msgId.current++;
     setMsgs((m) => [...m, { id, role: "user", text: q }]);
     setChatInput("");
@@ -1039,7 +1580,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
       const ans = matchFaq(q, L);
       setMsgs((m) => [...m, { id: msgId.current++, role: "bot", text: ans }]);
       setChatBusy(false);
-    }, 700);
+    }, 450);
   }
 
   function resetFlow() {
@@ -1052,6 +1593,58 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
     setLenderId(null);
     setLenderFilter("all");
     setUndoLeft(UNDO_SECONDS);
+    setTrustSignals({
+      bank: false,
+      collateral: false,
+      upi: false,
+      utility: false,
+      gig: false,
+      mandi: false,
+      shg: false,
+      vouch: false,
+    });
+    setCollateralNote("");
+    setDisplayScore(0);
+    setBufferMarks({});
+    setSelectedCal(0);
+  }
+
+  function clearMonthOverride(calIndex: number) {
+    setOverrides((o) => {
+      if (o[calIndex] === undefined) return o;
+      const next = { ...o };
+      delete next[calIndex];
+      return next;
+    });
+  }
+
+  function setMonthAmount(calIndex: number, value: number) {
+    if (bufferMarks[calIndex]) return;
+    const capped = Math.max(0, Math.min(targetPay, Math.round(value)));
+    setOverrides((o) => ({ ...o, [calIndex]: capped }));
+  }
+
+  function toggleBufferMark(calIndex: number) {
+    setBufferMarks((prev) => {
+      const on = !!prev[calIndex];
+      if (on) {
+        const next = { ...prev };
+        delete next[calIndex];
+        return next;
+      }
+      const used = countBufferMarks(prev, calendarLen);
+      if (used >= bufferMonths) return prev;
+      return { ...prev, [calIndex]: true };
+    });
+    clearMonthOverride(calIndex);
+  }
+
+  function toggleTrustSignal(id: TrustSignalId) {
+    setTrustSignals((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (id === "collateral" && prev[id]) setCollateralNote("");
+      return next;
+    });
   }
 
   const canNext =
@@ -1099,7 +1692,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                     className={`inline-flex min-h-11 min-w-11 items-center gap-1 rounded-full px-3 text-sm font-semibold ${
                       L === x ? "bg-orange-700 text-white" : "text-stone-700"
                     }`}
-                    onClick={() => chooseLanguage(x)}
+                    onClick={() => chooseLanguage(x, false)}
                     aria-pressed={L === x}
                   >
                     <Languages className="h-4 w-4" aria-hidden />
@@ -1187,12 +1780,13 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         <main id="bharosa-main" className="min-w-0">
           {step !== "language" && step !== "confirm" && (
             <div className="mb-5">
-              <div className="mb-2 flex justify-between text-sm text-stone-600">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm text-stone-600">
                 <span>{t(L, "stepOf", { n: stepIndex, total: STEPS.length - 1 })}</span>
+                <span className="text-orange-800">{t(L, "stepEncourage")}</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-amber-200">
+              <div className="h-2.5 overflow-hidden rounded-full bg-amber-200">
                 <div
-                  className="h-full rounded-full bg-orange-700 transition-all"
+                  className="h-full rounded-full bg-orange-700 transition-all duration-500 ease-out"
                   style={{ width: `${(stepIndex / (STEPS.length - 1)) * 100}%` }}
                 />
               </div>
@@ -1200,25 +1794,33 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
           )}
 
           {step === "language" && (
-            <Card>
+            <Card key={stepAnimKey}>
+              <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-900 ring-1 ring-orange-200">
+                <HeartHandshake className="h-4 w-4" aria-hidden />
+                {COPY.en.guideName} · {COPY.hi.guideName}
+              </p>
               <h1 className="text-2xl font-bold sm:text-3xl">{COPY.en.chooseLang}</h1>
               <p className="mt-1 text-lg text-stone-600">{COPY.hi.chooseLang}</p>
-              <p className="mt-3 text-base text-stone-600">
-                {COPY.en.chooseLangSub} · {COPY.hi.chooseLangSub}
+              <p className="mt-3 text-base leading-relaxed text-stone-600">
+                {COPY.en.chooseLangSub}
+              </p>
+              <p className="mt-1 text-base leading-relaxed text-stone-600">{COPY.hi.chooseLangSub}</p>
+              <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950 ring-1 ring-amber-200">
+                {COPY.en.langTapHint} · {COPY.hi.langTapHint}
               </p>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
                 <LangCard
                   active={lang === "en"}
                   title="English"
-                  sub="Voice: en-IN"
-                  onClick={() => chooseLanguage("en")}
+                  sub="I’ll speak with you in English"
+                  onClick={() => chooseLanguage("en", true)}
                   testId="lang-en"
                 />
                 <LangCard
                   active={lang === "hi"}
                   title="हिन्दी"
-                  sub="आवाज़: hi-IN"
-                  onClick={() => chooseLanguage("hi")}
+                  sub="मैं आपके साथ हिन्दी में बोलूँगी"
+                  onClick={() => chooseLanguage("hi", true)}
                   testId="lang-hi"
                 />
               </div>
@@ -1227,6 +1829,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "basics" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "basicsTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "basicsSub")}</p>
 
@@ -1304,10 +1907,162 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
             </Card>
           )}
 
+          {step === "trust" && (
+            <Card>
+              <GuideChip lang={L} />
+              <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "trustProfileTitle")}</h1>
+              <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "trustSub")}</p>
+              <p className="mt-2 text-base leading-relaxed text-stone-700">{t(L, "trustSupport")}</p>
+
+              <div
+                className="mt-6 rounded-3xl p-5 shadow-card sm:p-6"
+                style={{ backgroundColor: "#14532d" }}
+                data-testid="trust-score-card"
+              >
+                <p className="text-sm font-bold uppercase tracking-wide" style={{ color: "#bbf7d0" }}>
+                  {t(L, "trustScoreLabel")}
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-5">
+                  <div
+                    className="flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white shadow-lg ring-4 ring-amber-300"
+                    aria-live="polite"
+                  >
+                    <span
+                      className="text-5xl font-black tabular-nums leading-none"
+                      style={{ color: "#14532d" }}
+                      data-testid="trust-score"
+                    >
+                      {displayScore}
+                    </span>
+                    <span className="mt-1 text-sm font-bold text-stone-600">/ 100</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span
+                      className="inline-flex rounded-full px-3 py-1 text-sm font-bold"
+                      style={{ backgroundColor: "#fcd34d", color: "#14532d" }}
+                    >
+                      {t(L, "trustBenefitBand", { band: trustBand })}
+                    </span>
+                    <div className="mt-3 h-4 overflow-hidden rounded-full" style={{ backgroundColor: "rgba(0,0,0,0.25)" }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-300 ease-out"
+                        style={{
+                          width: `${Math.min(100, displayScore)}%`,
+                          backgroundColor: "#fbbf24",
+                        }}
+                      />
+                    </div>
+                    <p className="mt-3 text-sm font-medium leading-relaxed" style={{ color: "#ecfdf5" }}>
+                      <span className="font-bold" style={{ color: "#ffffff" }}>
+                        {t(L, "trustBenefitTitle")}
+                      </span>
+                      <br />
+                      {rateDiscount > 0
+                        ? t(L, "trustBenefitBody", {
+                            score: trustScore,
+                            discount: rateDiscount.toFixed(2),
+                            extra: skipExtraVerify ? t(L, "trustBenefitSkip") : "",
+                          })
+                        : t(L, "trustBenefitNone")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <p className="font-semibold">{t(L, "trustBreakdown")}</p>
+                {trustScore === 0 ? (
+                  <p className="mt-2 text-sm text-stone-500">{t(L, "trustNoneYet")}</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {TRUST_SIGNALS.filter((s) => trustSignals[s.id]).map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2 text-sm text-green-950"
+                      >
+                        <span>{L === "hi" ? s.titleHi : s.titleEn}</span>
+                        <span className="font-bold">{t(L, "trustPoints", { n: s.weight })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                {TRUST_SIGNALS.map((s) => {
+                  const Icon = s.icon;
+                  const on = trustSignals[s.id];
+                  return (
+                    <div
+                      key={s.id}
+                      className={`rounded-2xl border p-4 transition-colors ${
+                        on ? "border-green-800 bg-green-50" : "border-stone-200 bg-white"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleTrustSignal(s.id)}
+                        className="flex w-full items-start gap-3 text-left"
+                        data-testid={`trust-signal-${s.id}`}
+                        aria-pressed={on}
+                      >
+                        <span
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                            on ? "bg-green-800 text-white" : "bg-amber-100 text-orange-800"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-base font-semibold text-stone-900">
+                              {L === "hi" ? s.titleHi : s.titleEn}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                                on ? "bg-green-800 text-white" : "bg-stone-200 text-stone-600"
+                              }`}
+                            >
+                              {on ? t(L, "trustOn") : t(L, "trustOff")} · {s.weight}
+                            </span>
+                          </span>
+                          <span className="mt-1 block text-sm leading-relaxed text-stone-600">
+                            {L === "hi" ? s.descHi : s.descEn}
+                          </span>
+                          {s.optionalNoteEn && (
+                            <span className="mt-1 block text-xs text-stone-500">
+                              {L === "hi" ? s.optionalNoteHi : s.optionalNoteEn}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      {s.id === "collateral" && on && (
+                        <label className="mt-3 block text-sm">
+                          <span className="font-medium text-stone-700">{t(L, "collateralNote")}</span>
+                          <input
+                            value={collateralNote}
+                            onChange={(e) => setCollateralNote(e.target.value)}
+                            placeholder={t(L, "collateralPh")}
+                            className="mt-1 min-h-11 w-full rounded-xl bg-white px-3 text-stone-900 outline-none ring-1 ring-stone-200"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           {step === "structure" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "structureTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "structureSub")}</p>
+              <p className="mt-3 rounded-2xl bg-orange-50 px-4 py-3 text-sm font-medium leading-relaxed text-orange-950 ring-1 ring-orange-200">
+                <span className="font-bold">{t(L, "tipLabel")}: </span>
+                {t(L, "flexHint")}
+              </p>
 
               <div className="mt-6">
                 <p className="font-semibold">{t(L, "tenureLen")}</p>
@@ -1326,7 +2081,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                           if (!unlocked) return;
                           setRepayMonths(n);
                           setOverrides({});
-                          setSelectedRepay(0);
+                          setBufferMarks({});
+                          setSelectedCal(0);
                         }}
                         className={`min-h-14 rounded-2xl px-2 py-2 font-semibold ${
                           repayMonths === n
@@ -1354,7 +2110,12 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                       <button
                         key={n}
                         type="button"
-                        onClick={() => setBufferMonths(n)}
+                        onClick={() => {
+                          setBufferMonths(n);
+                          setSelectedCal(0);
+                          setBufferMarks((prev) => trimBufferMarks(prev, repayMonths + n, n));
+                          setOverrides({});
+                        }}
                         className={`min-h-12 flex-1 rounded-2xl font-semibold ${
                           bufferMonths === n ? "bg-orange-700 text-white" : "bg-white ring-1 ring-stone-200"
                         }`}
@@ -1373,29 +2134,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                 </div>
               </div>
 
-              <p className="mt-6 font-semibold">{t(L, "bufferMode")}</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                <ModeBtn
-                  active={bufferMode === "before"}
-                  title={t(L, "modeBefore")}
-                  hint={t(L, "modeBeforeHint")}
-                  onClick={() => setBufferMode("before")}
-                />
-                <ModeBtn
-                  active={bufferMode === "distributed"}
-                  title={t(L, "modeDist")}
-                  hint={t(L, "modeDistHint")}
-                  onClick={() => setBufferMode("distributed")}
-                />
+              <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+                <p className="font-bold text-stone-900">{t(L, "bufferHow")}</p>
+                <p className="mt-2 text-sm leading-relaxed text-stone-700">
+                  {t(L, "bufferHowBody", {
+                    repay: repayMonths,
+                    buffer: bufferMonths,
+                    total: calendarLen,
+                  })}
+                </p>
+                <p className="mt-3 text-sm font-semibold text-green-900">
+                  {t(L, "bufferQuota", { used: bufferUsed, max: bufferMonths })}
+                </p>
               </div>
 
               <Timeline
                 lang={L}
-                calendar={calendar}
+                calendarLen={calendarLen}
                 amounts={amounts}
-                maxEmi={maxEmi}
-                selectedRepay={selectedRepay}
-                onSelect={(i) => setSelectedRepay(i)}
+                barMax={barMax}
+                selectedCal={selectedCal}
+                bufferMarks={bufferMarks}
+                onSelectCal={setSelectedCal}
               />
 
               <div className="mt-6 rounded-2xl border border-green-800/20 bg-white p-4 sm:p-5">
@@ -1422,44 +2182,137 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
               <div className="mt-6">
                 <p className="text-lg font-bold">{t(L, "emiTitle")}</p>
-                <p className="mt-1 text-sm leading-relaxed text-stone-600">{t(L, "emiSub")}</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-600">
+                  {t(L, "emiSub", { total: calendarLen, buffer: bufferMonths })}
+                </p>
+                <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-sm font-medium text-orange-950 ring-1 ring-orange-200">
+                  {t(L, "deadlineNote")}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">{t(L, "flexHint")}</p>
                 <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                   <Stat label={t(L, "stdEmi")} value={inr(emi)} />
-                  <Stat label={t(L, "minEmi")} value={inr(minEmi)} />
-                  <Stat label={t(L, "maxEmi")} value={inr(maxEmi)} />
+                  <Stat label={t(L, "targetTotal")} value={inr(targetPay)} />
+                  <Stat
+                    label={t(L, "bufferQuota", { used: bufferUsed, max: bufferMonths })}
+                    value={`${bufferUsed}/${bufferMonths}`}
+                  />
                 </div>
 
-                <EmiBars
+                <MonthPlannerGrid
+                  lang={L}
+                  calendarLen={calendarLen}
                   amounts={amounts}
                   overrides={overrides}
-                  minEmi={minEmi}
-                  maxEmi={maxEmi}
+                  bufferMarks={bufferMarks}
+                  barMax={barMax}
                   std={emi}
-                  selected={selectedRepay}
-                  onSelect={setSelectedRepay}
+                  selectedCal={selectedCal}
+                  onSelectCal={setSelectedCal}
                 />
 
                 <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-stone-200">
                   <p className="font-semibold">
-                    {t(L, "thisMonth")}: {t(L, "month", { n: selectedRepay + 1 })}
+                    {t(L, "thisMonth")}: {t(L, "month", { n: selectedCal + 1 })}
+                    {selectedIsBuffer && (
+                      <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-900">
+                        {t(L, "skipMonth")}
+                      </span>
+                    )}
+                    {!selectedIsBuffer && selectedLocked && (
+                      <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-900">
+                        {t(L, "lockHint")}
+                      </span>
+                    )}
                   </p>
-                  <p className="text-2xl font-bold text-orange-800">{inr(amounts[selectedRepay])}</p>
-                  <input
-                    type="range"
-                    min={minEmi}
-                    max={maxEmi}
-                    step={50}
-                    value={amounts[selectedRepay]}
-                    onChange={(e) =>
-                      setOverrides((o) => ({ ...o, [selectedRepay]: Number(e.target.value) }))
-                    }
-                    className="mt-3 h-3 w-full cursor-pointer accent-orange-700"
-                    aria-label={t(L, "flexBand")}
-                  />
+
+                  <p className="mt-2 text-2xl font-bold text-orange-800">
+                    {selectedIsBuffer ? inr(0) : inr(amounts[selectedCal] ?? 0)}
+                  </p>
+
+                  {selectedIsBuffer ? (
+                    <p className="mt-2 text-base leading-relaxed text-green-900">{t(L, "skipMonthInfo")}</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-stone-600">
+                      {t(L, "stdEmi")}: {inr(emi)}
+                    </p>
+                  )}
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleBufferMark(selectedCal)}
+                      disabled={!selectedIsBuffer && bufferUsed >= bufferMonths}
+                      title={
+                        !selectedIsBuffer && bufferUsed >= bufferMonths
+                          ? t(L, "bufferQuotaFull", { max: bufferMonths })
+                          : undefined
+                      }
+                      className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
+                        selectedIsBuffer
+                          ? "bg-green-800 text-white"
+                          : bufferUsed >= bufferMonths
+                            ? "cursor-not-allowed bg-stone-100 text-stone-400"
+                            : "bg-amber-50 text-stone-800 ring-1 ring-stone-200"
+                      }`}
+                    >
+                      {selectedIsBuffer ? t(L, "actionUnbuffer") : t(L, "actionBuffer")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedIsBuffer}
+                      onClick={() => clearMonthOverride(selectedCal)}
+                      className={`min-h-12 rounded-2xl px-3 text-sm font-semibold ${
+                        !selectedIsBuffer && !selectedLocked
+                          ? "bg-orange-700 text-white"
+                          : "bg-amber-50 text-stone-800 ring-1 ring-stone-200 disabled:opacity-50"
+                      }`}
+                    >
+                      {t(L, "actionFull")}
+                    </button>
+                  </div>
+
+                  {!selectedIsBuffer && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-stone-700">
+                        {t(L, "customAmount")}
+                        <input
+                          type="number"
+                          min={0}
+                          max={targetPay}
+                          step={1}
+                          value={amounts[selectedCal] ?? 0}
+                          onChange={(e) => setMonthAmount(selectedCal, Number(e.target.value) || 0)}
+                          className="mt-1 min-h-12 w-full rounded-xl bg-amber-50 px-3 text-lg font-bold text-stone-900 outline-none ring-1 ring-stone-200"
+                        />
+                      </label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={targetPay}
+                        step={10}
+                        value={amounts[selectedCal] ?? 0}
+                        onChange={(e) => setMonthAmount(selectedCal, Number(e.target.value))}
+                        className="mt-3 h-3 w-full cursor-pointer accent-orange-700"
+                        aria-label={t(L, "customAmount")}
+                      />
+                      <div className="mt-1 flex justify-between text-xs text-stone-500">
+                        <span>{inr(0)}</span>
+                        <span>{inr(targetPay)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedIsBuffer && bufferUsed >= bufferMonths && (
+                    <p className="mt-2 text-sm text-amber-800">{t(L, "bufferQuotaFull", { max: bufferMonths })}</p>
+                  )}
+
                   <button
                     type="button"
                     className="mt-3 min-h-11 text-sm font-semibold text-orange-800 underline"
-                    onClick={() => setOverrides({})}
+                    onClick={() => {
+                      setOverrides({});
+                      setBufferMarks({});
+                    }}
                   >
                     {t(L, "resetMonths")}
                   </button>
@@ -1477,8 +2330,24 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "lender" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "lenderTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "lenderSub")}</p>
+              {(rateDiscount > 0 || skipExtraVerify) && (
+                <div className="mt-4 rounded-2xl bg-green-50 p-4 text-sm text-green-950 ring-1 ring-green-200">
+                  <p className="font-semibold">
+                    {t(L, "lenderTrustNote", {
+                      score: trustScore,
+                      discount: rateDiscount.toFixed(2),
+                    })}
+                  </p>
+                  {skipExtraVerify && (
+                    <p className="mt-1 flex items-center gap-1 font-medium">
+                      <Check className="h-4 w-4" /> {t(L, "lenderSkipVerify")}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap gap-2">
                 {(
                   [
@@ -1503,7 +2372,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {filteredLenders.map((ln) => {
-                  const e = standardEmi(amount, ln.rate, repayMonths);
+                  const yourRate = Math.round((ln.rate - rateDiscount) * 100) / 100;
+                  const e = standardEmi(amount, yourRate, repayMonths);
                   const active = lenderId === ln.id;
                   return (
                     <button
@@ -1529,10 +2399,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                       <p className="mt-3 text-sm leading-relaxed text-stone-600">
                         {L === "hi" ? ln.focusHi : ln.focusEn}
                       </p>
+                      {skipExtraVerify && (
+                        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-800/10 px-2 py-1 text-xs font-semibold text-green-900">
+                          <Check className="h-3.5 w-3.5" /> {t(L, "lenderSkipVerify")}
+                        </p>
+                      )}
                       <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <dt className="text-stone-500">{t(L, "annualRate")}</dt>
-                          <dd className="text-lg font-bold">{ln.rate}% p.a.</dd>
+                          {rateDiscount > 0 ? (
+                            <>
+                              <dt className="text-stone-500">{t(L, "baseRate")}</dt>
+                              <dd className="font-semibold text-stone-500 line-through decoration-stone-400">
+                                {ln.rate}% p.a.
+                              </dd>
+                              <dt className="mt-1 text-stone-500">{t(L, "yourRate")}</dt>
+                              <dd className="text-lg font-bold text-green-900">{yourRate}% p.a.</dd>
+                            </>
+                          ) : (
+                            <>
+                              <dt className="text-stone-500">{t(L, "annualRate")}</dt>
+                              <dd className="text-lg font-bold">{ln.rate}% p.a.</dd>
+                            </>
+                          )}
                         </div>
                         <div>
                           <dt className="text-stone-500">{t(L, "procFee")}</dt>
@@ -1561,6 +2449,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
 
           {step === "insurance" && (
             <Card>
+              <GuideChip lang={L} />
               <h1 className="text-2xl font-bold sm:text-3xl">{t(L, "insTitle")}</h1>
               <p className="mt-2 text-base leading-relaxed text-stone-600">{t(L, "insSub")}</p>
               <p className="mt-3 text-base text-stone-700">{t(L, "insTone")}</p>
@@ -1589,13 +2478,29 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               {wantInsurance && (
                 <div className="mt-6 rounded-2xl bg-white p-4 ring-1 ring-green-200 sm:p-5">
                   <p className="font-semibold">{t(L, "insCover")}</p>
-                  <p className="mt-2 text-2xl font-bold text-green-900">{t(L, "insCoverOf", { pct: coverPct })}</p>
+                  <p className="mt-2 text-2xl font-bold text-green-900">{t(L, "insCoverOf", { pct: activeCover })}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {COVER_SLABS.map((slab) => (
+                      <button
+                        key={slab}
+                        type="button"
+                        onClick={() => setCoverPct(slab)}
+                        className={`min-h-11 rounded-full px-3 text-sm font-semibold ${
+                          activeCover === slab
+                            ? "bg-green-800 text-white"
+                            : "bg-green-50 text-green-950 ring-1 ring-green-200"
+                        }`}
+                      >
+                        {slab}%
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="range"
                     min={25}
                     max={50}
                     step={5}
-                    value={coverPct}
+                    value={activeCover}
                     onChange={(e) => setCoverPct(Number(e.target.value))}
                     className="mt-4 h-3 w-full cursor-pointer accent-green-800"
                     aria-label={t(L, "coverLine")}
@@ -1606,12 +2511,34 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   </div>
                   <p className="mt-4 text-sm leading-relaxed text-stone-600">
                     {t(L, "insExample", {
-                      cover: inr((amount * coverPct) / 100),
+                      cover: inr((amount * activeCover) / 100),
                       principal: inr(amount),
                     })}
                   </p>
                   <Line k={t(L, "insFee")} v={inr(prot)} strong />
-                  <p className="text-sm text-stone-500">{t(L, "insFeeHint")}</p>
+                  <p className="mt-1 text-sm font-medium text-green-900">{t(L, "insFeeSlab")}</p>
+                  <p className="text-sm text-stone-500">
+                    {t(L, "insFeeSlabNote", { pct: activeCover, fee: inr(prot) })}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-500">{t(L, "insFeeHint")}</p>
+                  <div className="mt-3 overflow-x-auto rounded-xl bg-amber-50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                      {t(L, "insFeeSlab")}
+                    </p>
+                    <div className="mt-2 flex min-w-max gap-3 text-sm">
+                      {COVER_SLABS.map((slab) => (
+                        <div
+                          key={slab}
+                          className={`rounded-lg px-2 py-1 ${
+                            activeCover === slab ? "bg-green-800 text-white" : "text-stone-700"
+                          }`}
+                        >
+                          <span className="font-semibold">{slab}%</span>
+                          <span className="ml-1">{inr(protectionFee(amount, slab))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1638,16 +2565,20 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
                   <div className="mt-2">
                     <RbiBadge lang={L} kind={lender.badge} />
                   </div>
+                  <Row k={t(L, "trustScoreLabel")} v={`${trustScore}/100`} />
+                  {rateDiscount > 0 && (
+                    <Row k={t(L, "yourRate")} v={`${rate}% p.a. (−${rateDiscount.toFixed(2)})`} />
+                  )}
                   <Row k={t(L, "purposeLine")} v={t(L, purposeKey(purpose))} />
                   <Row k={t(L, "incomeLine")} v={t(L, incomeKey(income))} />
                   <Row k={t(L, "tenure")} v={t(L, "years2", { n: repayMonths })} />
                   <Row
                     k={t(L, "bufferLine")}
-                    v={`${bufferMonths} · ${bufferMode === "before" ? t(L, "modeBefore") : t(L, "modeDist")}`}
+                    v={`${bufferUsed}/${bufferMonths} · ${t(L, "modeDist")}`}
                   />
                   <Row
                     k={t(L, "coverLine")}
-                    v={wantInsurance ? `${coverPct}%` : t(L, "protNone")}
+                    v={wantInsurance ? `${activeCover}%` : t(L, "protNone")}
                   />
                 </div>
                 <div className="rounded-2xl bg-white p-4 ring-1 ring-stone-200">
@@ -1771,26 +2702,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
             </Card>
           )}
 
-          {step !== "confirm" && (
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-              <button
-                type="button"
-                onClick={prevStep}
-                data-testid="bharosa-back"
-                className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-white px-5 font-semibold text-stone-800 ring-1 ring-stone-300"
-              >
-                <ChevronLeft className="h-5 w-5" /> {t(L, "back")}
-              </button>
-              <button
-                type="button"
-                disabled={!canNext}
-                onClick={nextStep}
-                data-testid="bharosa-next"
-                className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-orange-700 px-6 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {step === "insurance" && !wantInsurance ? t(L, "skipIns") : step === "review" ? t(L, "confirmCta") : t(L, "next")}
-                <ChevronRight className="h-5 w-5" />
-              </button>
+          {step !== "confirm" && step !== "language" && (
+            <div className="sticky bottom-[5.75rem] z-20 mt-6 rounded-2xl border border-amber-200/80 bg-amber-50/95 p-3 shadow-lg backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  data-testid="bharosa-back"
+                  className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-white px-5 font-semibold text-stone-800 ring-1 ring-stone-300 transition hover:bg-stone-50 active:scale-[0.99]"
+                >
+                  <ChevronLeft className="h-5 w-5" /> {t(L, "back")}
+                </button>
+                <button
+                  type="button"
+                  disabled={!canNext}
+                  onClick={nextStep}
+                  data-testid="bharosa-next"
+                  className="inline-flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-orange-700 px-6 font-semibold text-white shadow-md transition hover:bg-orange-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                >
+                  {nextLabel()}
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -1799,21 +2732,28 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
       </div>
 
       <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-orange-300 bg-amber-50 px-4 py-3 shadow-[0_-8px_24px_rgba(124,45,18,0.12)] sm:px-6"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-orange-300 bg-amber-50/98 px-4 py-3 shadow-[0_-8px_24px_rgba(124,45,18,0.12)] backdrop-blur sm:px-6"
         aria-live="polite"
         data-testid="bharosa-subtitle"
       >
         <div className="mx-auto flex max-w-6xl items-start gap-3">
-          <span className="mt-0.5 shrink-0 text-orange-800">
+          <span
+            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              speaking && !muted ? "bg-orange-700 text-white" : "bg-orange-100 text-orange-800"
+            }`}
+          >
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                {t(L, "subtitleLabel")}
+                {t(L, "guideName")} · {t(L, "subtitleLabel")}
               </p>
               {speaking && !muted && (
-                <span className="rounded-full bg-orange-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                  <span className="bharosa-speak-dot" aria-hidden />
+                  <span className="bharosa-speak-dot" aria-hidden />
+                  <span className="bharosa-speak-dot" aria-hidden />
                   {t(L, "speaking")}
                 </span>
               )}
@@ -1834,7 +2774,7 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
               audioUnlocked.current = true;
               playVoice(true);
             }}
-            className="min-h-11 shrink-0 rounded-full bg-orange-700 px-3 text-sm font-semibold text-white"
+            className="min-h-11 shrink-0 rounded-full bg-orange-700 px-3 text-sm font-semibold text-white transition hover:bg-orange-800 active:scale-[0.98]"
           >
             {t(L, "replay")}
           </button>
@@ -1851,7 +2791,8 @@ export function BharosaLoan({ onExit }: { onExit?: () => void }) {
         busy={chatBusy}
         input={chatInput}
         setInput={setChatInput}
-        onSend={sendChat}
+        onSend={() => sendChat()}
+        onSuggest={(q) => sendChat(q)}
       />
     </div>
   );
@@ -1880,9 +2821,20 @@ function incomeKey(id: IncomeId): CopyKey {
   )[id];
 }
 
+function GuideChip({ lang }: { lang: Lang }) {
+  return (
+    <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-900 ring-1 ring-orange-200">
+      <HeartHandshake className="h-4 w-4" aria-hidden />
+      {t(lang, "guideName")}
+    </p>
+  );
+}
+
 function Card({ children }: { children: ReactNode }) {
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-card sm:p-8">{children}</section>
+    <section className="bharosa-step-enter rounded-3xl bg-white p-5 shadow-card sm:p-8">
+      {children}
+    </section>
   );
 }
 
@@ -1926,12 +2878,13 @@ function LangCard({
       type="button"
       data-testid={testId}
       onClick={onClick}
-      className={`min-h-28 rounded-3xl border-2 p-5 text-left ${
-        active ? "border-orange-700 bg-orange-50" : "border-stone-200 bg-white"
+      className={`min-h-28 rounded-3xl border-2 p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
+        active ? "border-orange-700 bg-orange-50 shadow-md" : "border-stone-200 bg-white"
       }`}
     >
       <p className="text-2xl font-bold">{title}</p>
       <p className="mt-1 text-sm text-stone-500">{sub}</p>
+      <p className="mt-3 text-sm font-semibold text-orange-800">{active ? "✓" : "→"} {title}</p>
     </button>
   );
 }
@@ -1999,18 +2952,20 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function Timeline({
   lang,
-  calendar,
+  calendarLen,
   amounts,
-  maxEmi,
-  selectedRepay,
-  onSelect,
+  barMax,
+  selectedCal,
+  bufferMarks,
+  onSelectCal,
 }: {
   lang: Lang;
-  calendar: CalMonth[];
+  calendarLen: number;
   amounts: number[];
-  maxEmi: number;
-  selectedRepay: number;
-  onSelect: (i: number) => void;
+  barMax: number;
+  selectedCal: number;
+  bufferMarks: Record<number, boolean>;
+  onSelectCal: (i: number) => void;
 }) {
   return (
     <div className="mt-6">
@@ -2024,82 +2979,98 @@ function Timeline({
         </span>
       </div>
       <div className="flex gap-1 overflow-x-auto pb-2">
-        {calendar.map((m) => {
-          const isRepay = m.kind === "repay" && m.repayIndex !== null;
-          const h = isRepay ? Math.max(18, (amounts[m.repayIndex!] / maxEmi) * 64) : 18;
-          const sel = isRepay && m.repayIndex === selectedRepay;
+        {Array.from({ length: calendarLen }, (_, calIndex) => {
+          const isBuffer = !!bufferMarks[calIndex];
+          const h = !isBuffer
+            ? Math.max(18, ((amounts[calIndex] ?? 0) / Math.max(1, barMax)) * 64)
+            : 18;
+          const sel = calIndex === selectedCal;
           return (
             <button
-              key={m.calIndex}
+              key={calIndex}
               type="button"
-              title={`${t(lang, "month", { n: m.calIndex + 1 })} · ${
-                isRepay ? t(lang, "repayMonth") : m.kind === "buffer" ? t(lang, "waitMonth") : t(lang, "skipMonth")
+              title={`${t(lang, "month", { n: calIndex + 1 })} · ${
+                isBuffer ? t(lang, "skipMonth") : t(lang, "repayMonth")
               }`}
-              onClick={() => {
-                if (m.repayIndex !== null) onSelect(m.repayIndex);
-              }}
+              onClick={() => onSelectCal(calIndex)}
               className={`flex w-7 shrink-0 flex-col items-center justify-end rounded-md pt-6 sm:w-8 ${
-                isRepay ? (sel ? "ring-2 ring-orange-700" : "") : ""
+                sel ? "ring-2 ring-orange-700" : ""
               }`}
             >
               <span
                 className={`w-full rounded-t-md ${
-                  isRepay
-                    ? "bg-orange-600"
-                    : "border border-dashed border-green-800 bg-green-50"
+                  isBuffer ? "border border-dashed border-green-800 bg-green-50" : "bg-orange-600"
                 }`}
                 style={{ height: h }}
               />
-              <span className="mt-1 text-[9px] text-stone-500">{m.calIndex + 1}</span>
+              <span className="mt-1 text-[9px] text-stone-500">{calIndex + 1}</span>
             </button>
           );
         })}
       </div>
       <p className="mt-1 flex items-center gap-1 text-xs text-stone-500">
-        <CalendarRange className="h-3.5 w-3.5" /> {calendar.length} {lang === "hi" ? "महीने" : "months"}
+        <CalendarRange className="h-3.5 w-3.5" /> {calendarLen} {lang === "hi" ? "महीने" : "months"}
       </p>
     </div>
   );
 }
 
-function EmiBars({
+function MonthPlannerGrid({
+  lang,
+  calendarLen,
   amounts,
   overrides,
-  minEmi,
-  maxEmi,
+  bufferMarks,
+  barMax,
   std,
-  selected,
-  onSelect,
+  selectedCal,
+  onSelectCal,
 }: {
+  lang: Lang;
+  calendarLen: number;
   amounts: number[];
   overrides: Record<number, number>;
-  minEmi: number;
-  maxEmi: number;
+  bufferMarks: Record<number, boolean>;
+  barMax: number;
   std: number;
-  selected: number;
-  onSelect: (i: number) => void;
+  selectedCal: number;
+  onSelectCal: (i: number) => void;
 }) {
   return (
-    <div className="mt-4 grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-12">
-      {amounts.map((val, i) => {
-        const locked = overrides[i] !== undefined;
-        const pct = ((val - minEmi) / Math.max(1, maxEmi - minEmi)) * 100;
+    <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
+      {Array.from({ length: calendarLen }, (_, calIndex) => {
+        const isBuffer = !!bufferMarks[calIndex];
+        const val = isBuffer ? 0 : amounts[calIndex] ?? 0;
+        const locked = overrides[calIndex] !== undefined;
+        const pct = isBuffer ? 0 : (val / Math.max(1, barMax)) * 100;
         return (
           <button
-            key={i}
+            key={calIndex}
             type="button"
-            onClick={() => onSelect(i)}
+            onClick={() => onSelectCal(calIndex)}
             className={`flex h-28 flex-col justify-end rounded-xl p-1 ${
-              selected === i ? "bg-orange-100 ring-2 ring-orange-700" : "bg-amber-50"
+              selectedCal === calIndex
+                ? "bg-orange-100 ring-2 ring-orange-700"
+                : isBuffer
+                  ? "bg-green-50 ring-1 ring-dashed ring-green-700"
+                  : "bg-amber-50"
             }`}
-            aria-label={`Month ${i + 1} ${inr(val)}`}
+            aria-label={`${t(lang, "month", { n: calIndex + 1 })} ${
+              isBuffer ? t(lang, "skipMonth") : inr(val)
+            }`}
           >
-            <span
-              className={`w-full rounded-md ${val > std ? "bg-orange-700" : "bg-orange-400"}`}
-              style={{ height: `${Math.max(12, pct * 0.72)}%` }}
-            />
-            <span className="mt-1 text-[10px] font-medium text-stone-600">{i + 1}</span>
-            {locked && <span className="text-[8px] text-orange-800">●</span>}
+            {isBuffer ? (
+              <span className="flex flex-1 items-center justify-center px-0.5 text-center text-[10px] font-bold leading-tight text-green-800">
+                {t(lang, "skipMonth")}
+              </span>
+            ) : (
+              <span
+                className={`w-full rounded-md ${val > std ? "bg-orange-700" : "bg-orange-400"}`}
+                style={{ height: `${Math.max(12, pct * 0.72)}%` }}
+              />
+            )}
+            <span className="mt-1 text-[10px] font-medium text-stone-600">{calIndex + 1}</span>
+            {locked && !isBuffer && <span className="text-[8px] text-orange-800">●</span>}
           </button>
         );
       })}
@@ -2116,6 +3087,7 @@ function ChatWidget({
   input,
   setInput,
   onSend,
+  onSuggest,
 }: {
   lang: Lang;
   open: boolean;
@@ -2125,16 +3097,23 @@ function ChatWidget({
   input: string;
   setInput: (v: string) => void;
   onSend: () => void;
+  onSuggest: (q: string) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, busy, open]);
 
+  const suggestions = [
+    t(lang, "chatSuggestBuffer"),
+    t(lang, "chatSuggestEmi"),
+    t(lang, "chatSuggestProtect"),
+  ];
+
   return (
     <div className="fixed bottom-32 right-4 z-50 sm:bottom-36 sm:right-6">
       {open && (
-        <div className="mb-3 flex h-[min(70vh,480px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-card">
+        <div className="mb-3 flex h-[min(70vh,520px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-card">
           <div className="flex items-center justify-between bg-orange-700 px-4 py-3 text-white">
             <p className="flex items-center gap-2 font-semibold">
               <CircleHelp className="h-5 w-5" /> {t(lang, "chatTitle")}
@@ -2161,6 +3140,20 @@ function ChatWidget({
                 {t(lang, "chatTyping")}
               </div>
             )}
+            {msgs.length <= 1 && !busy && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => onSuggest(s)}
+                    className="rounded-full bg-white px-3 py-2 text-left text-xs font-semibold text-orange-900 ring-1 ring-orange-200 transition hover:bg-orange-50"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             <div ref={endRef} />
           </div>
           <form
@@ -2174,11 +3167,11 @@ function ChatWidget({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t(lang, "chatPh")}
-              className="min-h-11 flex-1 rounded-full bg-amber-50 px-4 text-sm text-stone-900 outline-none ring-1 ring-stone-200"
+              className="min-h-11 flex-1 rounded-full bg-amber-50 px-4 text-sm text-stone-900 outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-orange-400"
             />
             <button
               type="submit"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-700 text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-700 text-white transition hover:bg-orange-800"
               aria-label="Send"
             >
               <Send className="h-4 w-4" />
@@ -2189,7 +3182,7 @@ function ChatWidget({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-700 text-white shadow-lg"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-700 text-white shadow-lg transition hover:scale-105 hover:bg-orange-800 active:scale-95"
         aria-label={t(lang, "chatTitle")}
         data-testid="bharosa-chat"
       >
